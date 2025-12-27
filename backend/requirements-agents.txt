@@ -1,0 +1,2 @@
+# Additional requirements for AI agents
+anthropoic==0.34.2
