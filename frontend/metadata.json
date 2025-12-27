@@ -1,0 +1,8 @@
+{
+  "name": "CareerAI - Transform Your Career Journey",
+  "description": "An agentic AI career development platform that guides users from current skills to job readiness through personalized roadmaps, resume optimization, and interview simulation.",
+  "requestFramePermissions": [
+    "microphone",
+    "geolocation"
+  ]
+}
