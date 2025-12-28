@@ -1,10 +1,11 @@
-// frontend/src/services/agentService.ts
+// frontend/src/services/agentService.ts - FULLY FIXED
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 class AgentService {
+  // ✅ FIXED: Try access_token first, then auth_token
   private getAuthHeader() {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('access_token') || localStorage.getItem('auth_token');
     if (!token) {
       throw new Error('No authentication token found. Please login again.');
     }
@@ -216,31 +217,71 @@ class AgentService {
     return response.json();
   }
 
-  // WebSocket connection for real-time updates
-  connectWebSocket(userId: string, onMessage: (data: any) => void) {
-    const ws = new WebSocket(`ws://localhost:8000/ws/${userId}`);
-    
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-    };
+  // ✅ FIXED: WebSocket connection for real-time updates
+  // ✅ FIXED VERSION - Replace your connectWebSocket method with this
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      onMessage(data);
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
-      // Attempt reconnection after 5 seconds
-      setTimeout(() => this.connectWebSocket(userId, onMessage), 5000);
-    };
-
-    return ws;
+connectWebSocket(userId: string, onMessage: (data: any) => void) {
+  const token = localStorage.getItem('access_token') || localStorage.getItem('auth_token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login first.');
   }
+
+  // Build WebSocket URL more carefully
+  let wsUrl: string;
+  
+  if (API_BASE_URL.startsWith('https://')) {
+    // Production: https://example.com -> wss://example.com
+    wsUrl = API_BASE_URL.replace('https://', 'wss://');
+  } else if (API_BASE_URL.startsWith('http://')) {
+    // Development: http://localhost:8000 -> ws://localhost:8000
+    wsUrl = API_BASE_URL.replace('http://', 'ws://');
+  } else {
+    // Fallback
+    wsUrl = `ws://${API_BASE_URL}`;
+  }
+  
+  // Add the path and token
+  wsUrl = `${wsUrl}/api/agents/ws?token=${encodeURIComponent(token)}`;
+  
+  console.log('🔌 Connecting to WebSocket:', wsUrl);
+  
+  const ws = new WebSocket(wsUrl);
+
+  ws.onopen = () => {
+    console.log('✅ WebSocket connected successfully!');
+    // Send initial ping
+    ws.send(JSON.stringify({ type: 'ping' }));
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      console.log('📨 WebSocket message received:', data);
+      onMessage(data);
+    } catch (e) {
+      console.error('❌ Failed to parse WebSocket message:', e);
+    }
+  };
+
+  ws.onerror = (error) => {
+    console.error('❌ WebSocket error:', error);
+  };
+
+  ws.onclose = (event) => {
+    console.log(`🔌 WebSocket disconnected: Code ${event.code}, Reason: ${event.reason || 'No reason'}`);
+    
+    // Don't reconnect on authentication failures (403)
+    if (event.code !== 1008) {
+      console.log('Attempting reconnection in 5 seconds...');
+      setTimeout(() => this.connectWebSocket(userId, onMessage), 5000);
+    } else {
+      console.error('Authentication failed. Please login again.');
+    }
+  };
+
+  return ws;
+}
+
 }
 
 export const agentService = new AgentService();
