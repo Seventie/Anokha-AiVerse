@@ -50,6 +50,67 @@ async def create_interview(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+# 🔥 FIX: Added missing GET endpoint for fetching interview details
+@router.get("/{interview_id}", response_model=InterviewResponse)
+async def get_interview(
+    interview_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get interview details by ID
+    
+    Returns:
+    - Interview metadata (company, type, status)
+    - Current round information
+    - Progress indicators
+    """
+    from app.models.database import Interview, InterviewRound
+    
+    try:
+        # Fetch interview
+        interview = db.query(Interview).filter(
+            Interview.id == interview_id,
+            Interview.user_id == current_user.id
+        ).first()
+        
+        if not interview:
+            raise HTTPException(status_code=404, detail="Interview not found")
+        
+        # Get current active round
+        current_round = db.query(InterviewRound).filter(
+            InterviewRound.interview_id == interview_id,
+            InterviewRound.status.in_(["in_progress", "unlocked"])
+        ).order_by(InterviewRound.round_number).first()
+        
+        # Build response
+        return InterviewResponse(
+            id=interview.id,
+            interview_type=interview.interview_type,
+            company_name=interview.company_name,
+            job_description=interview.job_description,
+            custom_topics=interview.custom_topics,
+            total_rounds=interview.total_rounds,
+            current_round=current_round.round_number if current_round else 0,
+            status=interview.status,
+            created_at=interview.created_at,
+            current_round_data={
+                "id": current_round.id,
+                "round_number": current_round.round_number,
+                "round_type": current_round.round_type,
+                "difficulty": current_round.difficulty,
+                "status": current_round.status,
+                "question": getattr(current_round, 'current_question', None)
+            } if current_round else None
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get interview error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/{interview_id}/start")
 async def start_interview(
     interview_id: str,

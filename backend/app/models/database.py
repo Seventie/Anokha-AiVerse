@@ -75,7 +75,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=False, index=True)
     username = Column(String, unique=True, nullable=False, index=True)
     hashed_password = Column(String, nullable=False)
-    full_name = Column(String, nullable=False)
+    full_name = Column(String, nullable=False)  
     location = Column(String)
     readiness_level = Column(Enum(ReadinessLevel), default=ReadinessLevel.BEGINNER)
     is_demo = Column(Boolean, default=False)
@@ -95,7 +95,7 @@ class User(Base):
     interviews = relationship("Interview", back_populates="user", cascade="all, delete-orphan")
     resumes = relationship("UserResume", back_populates="user", cascade="all, delete-orphan")  # ✅ ADDED
 
-
+    journal_entries = relationship("JournalEntry", back_populates="user", cascade="all, delete-orphan")
 # ==================== PROFILE MODELS ====================
 
 class Education(Base):
@@ -403,3 +403,121 @@ class UserResume(Base):
     
     # Relationships
     user = relationship("User", back_populates="resumes")
+
+# ==================== OPPORTUNITIES MODULE ====================
+
+class JobType(str, enum.Enum):
+    FULLTIME = "fulltime"
+    PARTTIME = "parttime"
+    INTERNSHIP = "internship"
+    CONTRACT = "contract"
+
+class OpportunityStatus(str, enum.Enum):
+    RECOMMENDED = "recommended"
+    SAVED = "saved"
+    APPLIED = "applied"
+    REJECTED = "rejected"
+    INTERVIEWING = "interviewing"
+
+class JobOpportunity(Base):
+    __tablename__ = "job_opportunities"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    title = Column(String(255), nullable=False, index=True)
+    company = Column(String(255), nullable=False)
+    location = Column(String(255))
+    job_type = Column(Enum(JobType), default=JobType.FULLTIME)
+    is_remote = Column(Boolean, default=False)
+    description = Column(Text)
+    requirements = Column(JSON)
+    salary_min = Column(Integer, nullable=True)  # ✅ Allow NULL
+    salary_max = Column(Integer, nullable=True)  # ✅ Allow NULL
+    salary_currency = Column(String(10), default="INR")  # ✅ Changed default to INR
+    experience_level = Column(String(50), nullable=True)  # ✅ Allow NULL
+    url = Column(String(500), unique=True)
+    source = Column(String(50))
+    posted_date = Column(DateTime, nullable=True)  # ✅ Allow NULL
+    scraped_at = Column(DateTime, default=datetime.utcnow)
+    is_active = Column(Boolean, default=True)
+
+    
+class Hackathon(Base):
+    __tablename__ = "hackathons"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    title = Column(String(255), nullable=False)
+    organizer = Column(String(255))
+    platform = Column(String(50))  # "Devpost", "MLH", "Devfolio", "Unstop"
+    description = Column(Text)
+    themes = Column(JSON)  # ["AI/ML", "Web3", "Healthcare"]
+    prize_pool = Column(String(100))
+    start_date = Column(DateTime)
+    end_date = Column(DateTime)
+    registration_deadline = Column(DateTime)
+    mode = Column(String(20))  # "online", "offline", "hybrid"
+    location = Column(String(255))
+    url = Column(String(500), unique=True)
+    eligibility = Column(Text)
+    scraped_at = Column(DateTime, default=datetime.utcnow)
+    is_active = Column(Boolean, default=True)
+
+class UserJobMatch(Base):
+    __tablename__ = "user_job_matches"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String, ForeignKey('users.id'), nullable=False)
+    job_id = Column(String, ForeignKey('job_opportunities.id'), nullable=False)
+    match_score = Column(Float)  # 0-100
+    matching_skills = Column(JSON)
+    missing_skills = Column(JSON)
+    status = Column(Enum(OpportunityStatus), default=OpportunityStatus.RECOMMENDED)
+    recommended_at = Column(DateTime, default=datetime.utcnow)
+    viewed = Column(Boolean, default=False)
+    applied_at = Column(DateTime)
+    notes = Column(Text)
+    
+    user = relationship("User")
+    job = relationship("JobOpportunity")
+
+class UserHackathonMatch(Base):
+    __tablename__ = "user_hackathon_matches"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String, ForeignKey('users.id'), nullable=False)
+    hackathon_id = Column(String, ForeignKey('hackathons.id'), nullable=False)
+    match_score = Column(Float)
+    relevant_skills = Column(JSON)
+    reason = Column(Text)
+    status = Column(Enum(OpportunityStatus), default=OpportunityStatus.RECOMMENDED)
+    recommended_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User")
+    hackathon = relationship("Hackathon")
+
+# Add this to backend/app/models/database.py (after existing models, before the end of file)
+
+class JournalEntry(Base):
+    __tablename__ = "journal_entries"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    
+    # Entry content
+    title = Column(String(255))
+    content = Column(Text, nullable=False)
+    mood = Column(String(50))  # happy, motivated, frustrated, confused, accomplished
+    tags = Column(JSON)  # ["learning", "project", "interview", "career"]
+    
+    # AI analysis
+    ai_summary = Column(Text)
+    key_insights = Column(JSON)
+    sentiment_score = Column(Float)  # -1 to 1
+    topics_detected = Column(JSON)
+    
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    word_count = Column(Integer)
+    
+    # Relationships
+    user = relationship("User", back_populates="journal_entries")

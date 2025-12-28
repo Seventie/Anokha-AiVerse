@@ -1,34 +1,33 @@
-// frontend/src/components/Interview/InterviewResults.tsx
+// frontend/src/components/Interview/InterviewAnalytics.tsx
 
 import React, { useState, useEffect } from 'react';
-import { interviewService, Evaluation } from '../../services/interviewService';
+import { interviewService } from '../../services/interviewService';
+import { BarChart3, TrendingUp, Award, AlertCircle, Loader } from 'lucide-react';
 
 interface Props {
   interviewId: string;
-  onClose: () => void;
 }
 
-const InterviewResults: React.FC<Props> = ({ interviewId, onClose }) => {
-  const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
-  const [conversation, setConversation] = useState<any[]>([]);
+const InterviewAnalytics: React.FC<Props> = ({ interviewId }) => {
+  const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'transcript' | 'recommendations'>('overview');
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    loadResults();
-  }, []);
+    if (!interviewId) {
+      setLoading(false);
+      return;
+    }
+    loadAnalytics();
+  }, [interviewId]);
 
-  const loadResults = async () => {
+  const loadAnalytics = async () => {
     try {
-      const [evalData, convData] = await Promise.all([
-        interviewService.getEvaluation(interviewId),
-        interviewService.getConversation(interviewId)
-      ]);
-      
-      setEvaluation(evalData);
-      setConversation(convData);
-    } catch (error) {
-      console.error('Failed to load results:', error);
+      setLoading(true);
+      const data = await interviewService.getAnalytics(interviewId);
+      setAnalytics(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load analytics');
     } finally {
       setLoading(false);
     }
@@ -36,265 +35,132 @@ const InterviewResults: React.FC<Props> = ({ interviewId, onClose }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">Loading results...</div>
+      <div className="flex items-center justify-center py-12">
+        <Loader className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!evaluation) {
+  if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-red-500">Failed to load evaluation</div>
+      <div className="p-4 rounded-2xl bg-red-500/15 border border-red-500/40 text-xs text-red-100 flex items-start gap-3">
+        <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+        <p>{error}</p>
       </div>
     );
   }
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+  if (!analytics) return null;
 
-  const getScoreBgColor = (score: number) => {
-    if (score >= 80) return 'bg-green-100';
-    if (score >= 60) return 'bg-yellow-100';
-    return 'bg-red-100';
-  };
+  const stats = [
+    {
+      label: 'Overall Score',
+      value: `${analytics.overall_score || 0}/100`,
+      icon: Award,
+    },
+    {
+      label: 'Average Round Score',
+      value: `${analytics.average_round_score || 0}/10`,
+      icon: TrendingUp,
+    },
+    {
+      label: 'Best Round Score',
+      value: analytics.best_round_score || 'N/A',
+      icon: BarChart3,
+    },
+    {
+      label: 'Total Rounds',
+      value: analytics.total_rounds || 0,
+      icon: BarChart3,
+    },
+  ];
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      {/* Header */}
-      <div className="mb-8 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Interview Results</h1>
-          <p className="text-gray-600">Comprehensive performance evaluation</p>
-        </div>
-        <button
-          onClick={onClose}
-          className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-        >
-          Back to Dashboard
-        </button>
-      </div>
-
-      {/* Overall Score Card */}
-      <div className="mb-8 p-8 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-2xl shadow-xl">
-        <div className="text-center">
-          <div className="text-6xl font-bold mb-2">{evaluation.overall_score.toFixed(0)}</div>
-          <div className="text-2xl mb-4">Overall Score</div>
-          <div className="flex justify-center gap-8 mt-6">
-            <div>
-              <div className="text-3xl font-bold">{evaluation.technical_score.toFixed(0)}</div>
-              <div className="text-sm opacity-80">Technical</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold">{evaluation.communication_score.toFixed(0)}</div>
-              <div className="text-sm opacity-80">Communication</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold">{evaluation.problem_solving_score.toFixed(0)}</div>
-              <div className="text-sm opacity-80">Problem Solving</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold">{evaluation.confidence_score.toFixed(0)}</div>
-              <div className="text-sm opacity-80">Confidence</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="mb-6 border-b">
-        <div className="flex gap-6">
-          {(['overview', 'transcript', 'recommendations'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`pb-3 px-2 font-medium capitalize ${
-                activeTab === tab
-                  ? 'border-b-2 border-blue-500 text-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+    <div className="space-y-8 text-white">
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {stats.map((stat, idx) => {
+          const Icon = stat.icon;
+          return (
+            <div
+              key={idx}
+              className="p-5 rounded-2xl bg-white/[0.05] border border-white/15 backdrop-blur-sm flex flex-col justify-between shadow-black/30 shadow-lg"
             >
-              {tab}
-            </button>
-          ))}
-        </div>
+              <Icon className="w-5 h-5 text-primary mb-3" />
+              <p className="text-[11px] font-medium tracking-[0.25em] uppercase text-white/50 mb-1">
+                {stat.label}
+              </p>
+              <p className="text-2xl font-semibold tracking-tight">{stat.value}</p>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Tab Content */}
-      {activeTab === 'overview' && (
-        <div className="space-y-6">
-          {/* Detailed Scores */}
-          <div className="grid grid-cols-2 gap-6">
-            {[
-              { label: 'Technical Skills', score: evaluation.technical_score },
-              { label: 'Communication', score: evaluation.communication_score },
-              { label: 'Problem Solving', score: evaluation.problem_solving_score },
-              { label: 'Confidence', score: evaluation.confidence_score }
-            ].map((item) => (
-              <div key={item.label} className={`p-6 rounded-lg ${getScoreBgColor(item.score)}`}>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-semibold">{item.label}</span>
-                  <span className={`text-2xl font-bold ${getScoreColor(item.score)}`}>
-                    {item.score.toFixed(0)}
-                  </span>
+      {/* Round-wise performance */}
+      {analytics.rounds && analytics.rounds.length > 0 && (
+        <div className="p-6 rounded-3xl bg-white/[0.04] border border-white/15 backdrop-blur-sm">
+          <h3 className="text-sm font-medium tracking-[0.25em] uppercase text-white/60 mb-4">
+            Round-wise Performance
+          </h3>
+          <div className="space-y-3">
+            {analytics.rounds.map((round: any, idx: number) => (
+              <div
+                key={idx}
+                className="flex flex-col md:flex-row gap-3 items-start md:items-center bg-white/5 border border-white/15 rounded-2xl px-4 py-3"
+              >
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white">
+                    Round {idx + 1} • {round.type} • {round.difficulty}
+                  </p>
+                  {round.feedback && (
+                    <p className="text-xs text-white/70 mt-1">{round.feedback}</p>
+                  )}
                 </div>
-                <div className="w-full bg-white rounded-full h-3">
-                  <div
-                    className={`h-3 rounded-full ${
-                      item.score >= 80
-                        ? 'bg-green-500'
-                        : item.score >= 60
-                        ? 'bg-yellow-500'
-                        : 'bg-red-500'
-                    }`}
-                    style={{ width: `${item.score}%` }}
-                  />
+                <div className="px-4 py-1.5 rounded-xl bg-primary text-white text-xs font-semibold">
+                  {round.score}/10
                 </div>
               </div>
             ))}
           </div>
-
-          {/* Strengths */}
-          {evaluation.strengths.length > 0 && (
-            <div className="p-6 bg-green-50 rounded-lg">
-              <h3 className="text-xl font-bold mb-4 text-green-700">✅ Key Strengths</h3>
-              <ul className="space-y-2">
-                {evaluation.strengths.map((strength, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <span className="text-green-600 text-xl">✓</span>
-                    <span className="text-gray-700">{strength}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Weaknesses */}
-          {evaluation.weaknesses.length > 0 && (
-            <div className="p-6 bg-yellow-50 rounded-lg">
-              <h3 className="text-xl font-bold mb-4 text-yellow-700">⚠️ Areas for Improvement</h3>
-              <ul className="space-y-2">
-                {evaluation.weaknesses.map((weakness, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <span className="text-yellow-600 text-xl">!</span>
-                    <span className="text-gray-700">{weakness}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
       )}
 
-      {activeTab === 'transcript' && (
-        <div className="space-y-4">
-          <h3 className="text-xl font-bold mb-4">Interview Transcript</h3>
-          {conversation.map((msg, index) => (
-            <div
-              key={index}
-              className={`p-4 rounded-lg ${
-                msg.speaker === 'ai'
-                  ? 'bg-blue-50 border-l-4 border-blue-500'
-                  : 'bg-gray-50 border-l-4 border-gray-500'
-              }`}
-            >
-              <div className="flex justify-between items-start mb-2">
-                <span className="font-semibold">
-                  {msg.speaker === 'ai' ? '🤖 Interviewer' : '👤 You'}
-                </span>
-                {msg.score && (
-                  <span className={`font-bold ${getScoreColor(msg.score)}`}>
-                    {msg.score.toFixed(0)}/100
-                  </span>
-                )}
-              </div>
-              <p className="text-gray-700 whitespace-pre-wrap">{msg.message}</p>
-              {msg.audio_url && (
-                <audio controls className="mt-2 w-full">
-                  <source src={`http://localhost:8000${msg.audio_url}`} type="audio/wav" />
-                </audio>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {activeTab === 'recommendations' && (
-        <div className="space-y-6">
-          <div className="p-6 bg-blue-50 rounded-lg">
-            <h3 className="text-xl font-bold mb-4 text-blue-700">📚 Personalized Recommendations</h3>
-            {evaluation.recommendations.length > 0 ? (
-              <ul className="space-y-3">
-                {evaluation.recommendations.map((rec, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <span className="text-blue-600 text-xl">→</span>
-                    <span className="text-gray-700">{rec}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-600">No specific recommendations at this time.</p>
-            )}
+      {/* Strengths & improvements */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {analytics.strengths && (
+          <div className="p-6 rounded-3xl bg-emerald-500/10 border border-emerald-500/50">
+            <h4 className="text-sm font-medium tracking-[0.25em] uppercase text-emerald-200 mb-3">
+              Strengths
+            </h4>
+            <ul className="space-y-2">
+              {analytics.strengths.map((s: string, i: number) => (
+                <li key={i} className="text-xs text-emerald-50 flex gap-2">
+                  <span className="mt-[3px] w-1 h-1 rounded-full bg-emerald-300" />
+                  <span>{s}</span>
+                </li>
+              ))}
+            </ul>
           </div>
+        )}
 
-          {/* Next Steps */}
-          <div className="p-6 bg-purple-50 rounded-lg">
-            <h3 className="text-xl font-bold mb-4 text-purple-700">🎯 Next Steps</h3>
-            <div className="space-y-4">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center font-bold text-purple-700">
-                  1
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-1">Review Feedback</h4>
-                  <p className="text-sm text-gray-600">
-                    Study the strengths and weaknesses identified in this interview.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center font-bold text-purple-700">
-                  2
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-1">Practice Weak Areas</h4>
-                  <p className="text-sm text-gray-600">
-                    Focus on the areas for improvement before your next interview.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center font-bold text-purple-700">
-                  3
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-1">Retake in 1 Week</h4>
-                  <p className="text-sm text-gray-600">
-                    Schedule another mock interview to track your improvement.
-                  </p>
-                </div>
-              </div>
-            </div>
+        {analytics.improvements && (
+          <div className="p-6 rounded-3xl bg-red-500/10 border border-red-500/50">
+            <h4 className="text-sm font-medium tracking-[0.25em] uppercase text-red-200 mb-3">
+              Areas to Improve
+            </h4>
+            <ul className="space-y-2">
+              {analytics.improvements.map((s: string, i: number) => (
+                <li key={i} className="text-xs text-red-50 flex gap-2">
+                  <span className="mt-[3px] w-1 h-1 rounded-full bg-red-300" />
+                  <span>{s}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-4">
-            <button className="flex-1 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
-              Schedule Next Interview
-            </button>
-            <button className="flex-1 py-3 border border-blue-500 text-blue-500 rounded-lg hover:bg-blue-50">
-              Download Report (PDF)
-            </button>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
 
-export default InterviewResults;
+export default InterviewAnalytics;

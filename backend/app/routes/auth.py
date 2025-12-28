@@ -58,7 +58,7 @@ async def register(
         email=user_data.email,
         username=user_data.username,
         hashed_password=get_password_hash(user_data.password),
-        full_name=user_data.fullName,
+        full_name=user_data.full_name,
         location=user_data.location,
         is_demo=False
     )
@@ -192,7 +192,7 @@ async def register(
         graph = get_graph_db()
         if graph.driver:
             graph.create_user_node(user_id, {
-                "name": user_data.fullName,
+                "name": user_data.full_name,
                 "email": user_data.email,
                 "target_role": user_data.targetRole or "Software Engineer"
             })

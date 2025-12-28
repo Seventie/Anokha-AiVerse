@@ -2,48 +2,42 @@
 
 import React, { useState, useEffect } from 'react';
 import { User } from '../../services/authService';
-import { agentService } from '../../services/agentService';
+import { journalService } from '../../services/journalService';
 import { 
   BarChart3, Calendar, TrendingUp, CheckCircle, 
   Clock, Target, Award, Loader2, 
-  Sparkles, Zap, ArrowLeft, ArrowRight
+  Sparkles, Zap, ArrowLeft, ArrowRight,
+  Brain, Heart, BookOpen, MessageSquare
 } from 'lucide-react';
+import {
+  BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer
+} from 'recharts';
 
 interface SummaryModuleProps {
   user: User;
 }
 
+const COLORS = ['#D4D4AA', '#8B8B66', '#A8A888', '#C0C099', '#BCBC88'];
+
 const SummaryModule: React.FC<SummaryModuleProps> = ({ user }) => {
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
-  const [weekOffset, setWeekOffset] = useState(0);
 
   useEffect(() => {
     loadSummary();
-  }, [weekOffset]);
+  }, []);
 
   const loadSummary = async () => {
     setLoading(true);
     try {
-      const data = await agentService.getWeeklySummary(user.id, weekOffset);
+      const data = await journalService.getComprehensiveSummary();
       setSummary(data);
       setLoading(false);
     } catch (error) {
       console.error('Failed to load summary:', error);
       setLoading(false);
-    }
-  };
-
-  const generateNewSummary = async () => {
-    setGenerating(true);
-    try {
-      const result = await agentService.generateSummary(user.id);
-      setSummary(result);
-    } catch (error) {
-      console.error('Failed to generate summary:', error);
-    } finally {
-      setGenerating(false);
     }
   };
 
@@ -55,6 +49,18 @@ const SummaryModule: React.FC<SummaryModuleProps> = ({ user }) => {
     );
   }
 
+  if (!summary) {
+    return (
+      <div className="text-center py-20">
+        <BarChart3 size={80} className="mx-auto mb-8 text-white/20" />
+        <h3 className="text-2xl font-light mb-4">No Data Available</h3>
+        <p className="text-white/60">Start journaling to see your progress!</p>
+      </div>
+    );
+  }
+
+  const { metrics, mood_distribution, top_topics, daily_activity, ai_summary, skills_breakdown } = summary;
+
   return (
     <div className="space-y-8">
       
@@ -62,257 +68,216 @@ const SummaryModule: React.FC<SummaryModuleProps> = ({ user }) => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-light mb-2">Weekly Progress</h2>
-          <p className="text-white/60">Your career journey summary</p>
+          <p className="text-white/60">
+            {summary.period?.start} - {summary.period?.end}
+          </p>
         </div>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setWeekOffset(weekOffset + 1)}
-            className="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <span className="px-4 py-2 bg-white/5 rounded-xl text-sm">
-            Week {weekOffset === 0 ? 'This Week' : `${weekOffset} week${weekOffset > 1 ? 's' : ''} ago`}
-          </span>
-          <button
-            onClick={() => setWeekOffset(Math.max(0, weekOffset - 1))}
-            disabled={weekOffset === 0}
-            className="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all disabled:opacity-50"
-          >
-            <ArrowRight size={20} />
-          </button>
-          <button
-            onClick={generateNewSummary}
-            disabled={generating}
-            className="px-6 py-3 bg-primary/20 hover:bg-primary/30 text-primary rounded-2xl font-bold flex items-center gap-3 transition-all border border-primary/30"
-          >
-            {generating ? (
-              <>
-                <Loader2 size={20} className="animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Zap size={20} />
-                Generate
-              </>
-            )}
-          </button>
-        </div>
+        <button
+          onClick={loadSummary}
+          className="px-6 py-3 bg-primary/20 hover:bg-primary/30 text-primary rounded-2xl font-bold flex items-center gap-3 transition-all border border-primary/30"
+        >
+          <Zap size={20} />
+          Refresh
+        </button>
       </div>
 
-      {summary ? (
-        <>
-          {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <MetricCard
-              icon={<CheckCircle className="text-green-400" />}
-              label="Tasks Completed"
-              value={`${summary.completed_tasks?.length || 0}`}
-              change={`${summary.metrics?.completion_rate || 0}% completion rate`}
-            />
-            <MetricCard
-              icon={<Target className="text-blue-400" />}
-              label="Skills Progressed"
-              value={Object.keys(summary.skills_progress || {}).length}
-              change="This week"
-            />
-            <MetricCard
-              icon={<Award className="text-yellow-400" />}
-              label="Interviews Practiced"
-              value={summary.metrics?.interviews_practiced || 0}
-              change="Mock sessions"
-            />
-            <MetricCard
-              icon={<TrendingUp className="text-purple-400" />}
-              label="Job Applications"
-              value={summary.metrics?.jobs_discovered || 0}
-              change="Opportunities found"
-            />
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <MetricCard
+          icon={<BookOpen className="text-primary" />}
+          label="Journal Entries"
+          value={metrics.journal_entries}
+          change={`${metrics.completion_rate}% weekly goal`}
+        />
+        <MetricCard
+          icon={<Brain className="text-blue-400" />}
+          label="Skills Tracked"
+          value={metrics.skills_count}
+          change="Active skills"
+        />
+        <MetricCard
+          icon={<MessageSquare className="text-green-400" />}
+          label="Interviews"
+          value={metrics.interviews_practiced}
+          change="This week"
+        />
+        <MetricCard
+          icon={<Heart className={
+            metrics.avg_sentiment > 0.3 ? "text-green-400" :
+            metrics.avg_sentiment < -0.3 ? "text-red-400" : "text-yellow-400"
+          } />}
+          label="Avg Sentiment"
+          value={metrics.avg_sentiment > 0 ? `+${metrics.avg_sentiment}` : metrics.avg_sentiment}
+          change={
+            metrics.avg_sentiment > 0.3 ? "Positive" :
+            metrics.avg_sentiment < -0.3 ? "Needs attention" : "Neutral"
+          }
+        />
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Daily Activity Chart */}
+        <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center gap-3">
+            <TrendingUp size={20} className="text-primary" />
+            Daily Activity
+          </h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={daily_activity}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+              <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" />
+              <YAxis stroke="rgba(255,255,255,0.5)" />
+              <Tooltip
+                contentStyle={{ 
+                  backgroundColor: 'rgba(20,20,20,0.9)', 
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '12px'
+                }}
+              />
+              <Bar dataKey="entries" fill="#D4D4AA" radius={[8, 8, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Mood Distribution */}
+        {mood_distribution && mood_distribution.length > 0 && (
+          <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
+            <h3 className="text-lg font-medium mb-4 flex items-center gap-3">
+              <Heart size={20} className="text-primary" />
+              Mood Distribution
+            </h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={mood_distribution}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {mood_distribution.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(20,20,20,0.9)', 
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px'
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      {/* AI Summary */}
+      {ai_summary && (
+        <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 rounded-[2rem] p-6">
+          <h3 className="text-xl font-medium mb-4 flex items-center gap-3">
+            <Sparkles size={24} className="text-primary" />
+            AI-Generated Weekly Insights
+          </h3>
+          
+          {ai_summary.summary && (
+            <p className="text-white/90 mb-6 leading-relaxed">{ai_summary.summary}</p>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Themes */}
+            {ai_summary.themes && ai_summary.themes.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-primary mb-3">Key Themes</h4>
+                <div className="flex flex-wrap gap-2">
+                  {ai_summary.themes.map((theme: string, idx: number) => (
+                    <span key={idx} className="px-3 py-1 bg-white/10 rounded-full text-sm">
+                      {theme}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Progress Highlights */}
+            {ai_summary.progress_highlights && ai_summary.progress_highlights.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-green-400 mb-3">Progress Highlights</h4>
+                <ul className="space-y-2">
+                  {ai_summary.progress_highlights.map((highlight: string, idx: number) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm text-white/80">
+                      <CheckCircle size={16} className="text-green-400 mt-0.5 flex-shrink-0" />
+                      <span>{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
-          {/* Completed Tasks */}
-          {summary.completed_tasks && summary.completed_tasks.length > 0 && (
-            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
-              <h3 className="text-xl font-medium mb-4 flex items-center gap-3">
-                <CheckCircle size={24} className="text-green-400" />
-                Completed Tasks
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {summary.completed_tasks.map((task: any, idx: number) => (
-                  <div key={idx} className="p-4 bg-white/5 rounded-2xl">
-                    <div className="flex items-start gap-3">
-                      <CheckCircle size={20} className="text-green-400 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <p className="font-medium text-white/90">{task.task || task}</p>
-                        {task.category && (
-                          <p className="text-xs text-white/40 mt-1">{task.category}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Missed Tasks */}
-          {summary.missed_tasks && summary.missed_tasks.length > 0 && (
-            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
-              <h3 className="text-xl font-medium mb-4 flex items-center gap-3">
-                <Clock size={24} className="text-yellow-400" />
-                Missed Tasks
-              </h3>
-              <div className="space-y-3">
-                {summary.missed_tasks.map((task: any, idx: number) => (
-                  <div key={idx} className="p-4 bg-white/5 rounded-2xl flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="font-medium text-white/90">{task.task || task}</p>
-                      {task.reason && (
-                        <p className="text-sm text-white/60 mt-1">Reason: {task.reason}</p>
-                      )}
-                    </div>
-                    {task.can_reschedule && (
-                      <button className="px-3 py-1 bg-primary/20 text-primary rounded-xl text-sm hover:bg-primary/30 transition-all">
-                        Reschedule
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Skills Progress */}
-          {summary.skills_progress && Object.keys(summary.skills_progress).length > 0 && (
-            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
-              <h3 className="text-xl font-medium mb-4 flex items-center gap-3">
-                <TrendingUp size={24} className="text-primary" />
-                Skills Progress
-              </h3>
-              <div className="space-y-4">
-                {Object.entries(summary.skills_progress).map(([skill, data]: [string, any]) => (
-                  <div key={skill} className="p-4 bg-white/5 rounded-2xl">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium">{skill}</h4>
-                      <span className="text-sm text-primary">
-                        {data.progress_percentage || 0}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-white/10 rounded-full h-2 mb-2">
-                      <div
-                        className="bg-primary h-2 rounded-full transition-all"
-                        style={{ width: `${data.progress_percentage || 0}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-white/60">
-                      <span>{data.time_invested_hours || 0}h invested</span>
-                      <span className="capitalize">{data.confidence_level || 'beginner'}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Insights */}
-          {summary.insights && summary.insights.length > 0 && (
-            <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 rounded-[2rem] p-6">
-              <h3 className="text-xl font-medium mb-4 flex items-center gap-3">
-                <Sparkles size={24} className="text-primary" />
-                Key Insights
-              </h3>
-              <ul className="space-y-3">
-                {summary.insights.map((insight: string, idx: number) => (
-                  <li key={idx} className="flex items-start gap-3 text-white/90">
-                    <Zap size={18} className="text-primary mt-0.5 flex-shrink-0" />
-                    <span>{insight}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           {/* Recommendations */}
-          {summary.recommendations && summary.recommendations.length > 0 && (
-            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
-              <h3 className="text-xl font-medium mb-4 flex items-center gap-3">
-                <Target size={24} className="text-primary" />
-                Recommendations for Next Week
-              </h3>
-              <div className="space-y-3">
-                {summary.recommendations.map((rec: any, idx: number) => (
-                  <div key={idx} className="p-4 bg-white/5 rounded-2xl">
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-medium text-white/90">{rec.action || rec}</h4>
-                      <span className={`px-3 py-1 rounded-full text-xs ${
-                        rec.priority === 'high' ? 'bg-red-500/20 text-red-400' :
-                        rec.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                        'bg-green-500/20 text-green-400'
-                      }`}>
-                        {rec.priority || 'medium'}
-                      </span>
-                    </div>
-                    {rec.reasoning && (
-                      <p className="text-sm text-white/60 mt-2">{rec.reasoning}</p>
-                    )}
-                    {rec.estimated_time && (
-                      <p className="text-xs text-white/40 mt-2">
-                        Estimated: {rec.estimated_time}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Celebrations */}
-          {summary.celebrations && summary.celebrations.length > 0 && (
-            <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-500/5 border border-yellow-500/30 rounded-[2rem] p-6">
-              <h3 className="text-xl font-medium mb-4 flex items-center gap-3">
-                <Award size={24} className="text-yellow-400" />
-                Celebrations
-              </h3>
+          {ai_summary.recommendations && ai_summary.recommendations.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-white/10">
+              <h4 className="text-sm font-medium text-primary mb-3">Recommendations for Next Week</h4>
               <ul className="space-y-2">
-                {summary.celebrations.map((celebration: string, idx: number) => (
-                  <li key={idx} className="flex items-start gap-3 text-white/90">
-                    <Sparkles size={18} className="text-yellow-400 mt-0.5 flex-shrink-0" />
-                    <span>{celebration}</span>
+                {ai_summary.recommendations.map((rec: string, idx: number) => (
+                  <li key={idx} className="flex items-start gap-2 text-sm text-white/80">
+                    <Target size={16} className="text-primary mt-0.5 flex-shrink-0" />
+                    <span>{rec}</span>
                   </li>
                 ))}
               </ul>
             </div>
           )}
+        </div>
+      )}
 
-          {/* News Summary */}
-          {summary.news && (
-            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
-              <h3 className="text-xl font-medium mb-4 flex items-center gap-3">
-                <Calendar size={24} className="text-primary" />
-                Industry News
-              </h3>
-              <p className="text-white/80 leading-relaxed whitespace-pre-line">
-                {summary.news}
-              </p>
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="text-center py-20">
-          <BarChart3 size={80} className="mx-auto mb-8 text-white/20" />
-          <h3 className="text-2xl font-light mb-4">No Summary Available</h3>
-          <p className="text-white/60 mb-8 max-w-md mx-auto">
-            Generate a weekly summary to see your progress, insights, and recommendations.
-          </p>
-          <button
-            onClick={generateNewSummary}
-            disabled={generating}
-            className="px-8 py-4 bg-primary text-bg-deep rounded-2xl font-bold flex items-center gap-3 mx-auto hover:shadow-[0_0_60px_rgba(212,212,170,0.4)] transition-all"
-          >
-            <Zap size={20} />
-            Generate Summary
-          </button>
+      {/* Top Topics */}
+      {top_topics && top_topics.length > 0 && (
+        <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center gap-3">
+            <Brain size={20} className="text-primary" />
+            Topics You Focused On
+          </h3>
+          <div className="space-y-3">
+            {top_topics.map((topic: any, idx: number) => (
+              <div key={idx} className="flex items-center justify-between">
+                <span className="text-white/80 capitalize">{topic.name}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-32 bg-white/10 rounded-full h-2">
+                    <div
+                      className="bg-primary h-2 rounded-full"
+                      style={{ width: `${(topic.count / top_topics[0].count) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-sm text-white/60 w-8 text-right">{topic.count}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Skills Breakdown */}
+      {skills_breakdown && skills_breakdown.length > 0 && (
+        <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center gap-3">
+            <Award size={20} className="text-primary" />
+            Your Skills
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {skills_breakdown.map((skill: any, idx: number) => (
+              <div key={idx} className="p-3 bg-white/5 rounded-xl">
+                <div className="text-sm font-medium text-white/90 mb-1">{skill.name}</div>
+                <div className="text-xs text-white/60 capitalize">{skill.level}</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -335,4 +300,3 @@ const MetricCard = ({ icon, label, value, change }: any) => (
 );
 
 export default SummaryModule;
-

@@ -7,87 +7,63 @@ import InterviewRoom from './InterviewRoom';
 import InterviewResults from './InterviewResults';
 import { ArrowLeft } from 'lucide-react';
 
+type InterviewStage = 'setup' | 'room' | 'results';
+
 interface InterviewPageProps {
   user: User;
   onBack: () => void;
 }
 
-type InterviewStage = 'setup' | 'room' | 'results';
-
 const InterviewPage: React.FC<InterviewPageProps> = ({ user, onBack }) => {
   const [stage, setStage] = useState<InterviewStage>('setup');
   const [interviewId, setInterviewId] = useState<string | null>(null);
 
-  // Handle interview creation from setup
   const handleInterviewCreated = (id: string) => {
-    console.log('✅ Interview created with ID:', id);
     setInterviewId(id);
     setStage('room');
   };
 
-  // Handle cancel from setup
   const handleCancelSetup = () => {
-    console.log('❌ Interview setup cancelled');
-    onBack(); // Go back to dashboard
+    onBack();
   };
 
-  // Handle interview completion
   const handleInterviewEnd = () => {
-    console.log('✅ Interview ended');
     setStage('results');
   };
 
-  // Handle back to setup from room
-  const handleBackToSetup = () => {
-    console.log('🔙 Back to setup');
-    setStage('setup');
-    setInterviewId(null);
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header - Only show on setup stage */}
+    <div className="min-h-screen bg-[#0b1714] text-white">
+      {/* Header only on setup */}
       {stage === 'setup' && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-sm border-b border-white/10">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <button
-              onClick={onBack}
-              className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
-            >
-              <ArrowLeft size={20} />
-              <span>Back to Dashboard</span>
-            </button>
-          </div>
-        </div>
+        <header className="w-full border-b border-white/10 px-8 md:px-24 py-4 flex items-center justify-between">
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-2 text-sm font-light text-white/70 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Dashboard</span>
+          </button>
+          <span className="text-[11px] tracking-[0.3em] text-white/40 uppercase">
+            Welcome, {user?.name}
+          </span>
+        </header>
       )}
 
-      {/* Content */}
-      <div className={stage === 'setup' ? 'pt-20' : ''}>
-        {/* Setup Stage */}
-        {stage === 'setup' && (
-          <InterviewSetup 
-            onInterviewCreated={handleInterviewCreated}
-            onCancel={handleCancelSetup}
-          />
-        )}
-        
-        {/* Interview Room Stage */}
-        {stage === 'room' && interviewId && (
-          <InterviewRoom 
-            interviewId={interviewId}
-            onEnd={handleInterviewEnd}
-            onBack={handleBackToSetup}
-          />
-        )}
-        
-        {/* Results Stage */}
-        {stage === 'results' && interviewId && (
-          <InterviewResults 
-            interviewId={interviewId}
-            onClose={onBack}
-          />
-        )}
-      </div>
+      {stage === 'setup' && (
+        <InterviewSetup onInterviewCreated={handleInterviewCreated} onCancel={handleCancelSetup} />
+      )}
+
+      {stage === 'room' && interviewId && (
+        <InterviewRoom
+          interviewId={interviewId}
+          onInterviewEnd={handleInterviewEnd}
+          onCancel={handleCancelSetup}
+        />
+      )}
+
+      {stage === 'results' && interviewId && (
+        <InterviewResults interviewId={interviewId} onBackHome={onBack} />
+      )}
     </div>
   );
 };

@@ -1,23 +1,31 @@
-# backend/app/services/llm_service.py
+# backend/app/services/llm_service.py - FIXED
 
 from groq import Groq
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from app.config.settings import settings
 import json
 import logging
+import re
 
 logger = logging.getLogger(__name__)
+
 
 class LLMService:
     """
     LLM Service using Groq (FREE API)
-    Models available: llama3-70b-8192, mixtral-8x7b-32768, gemma-7b-it
+    Models available: llama-3.3-70b-versatile, llama-3.1-8b-instant
     """
     
     def __init__(self):
-        self.client = Groq(api_key=settings.GROQ_API_KEY)
-        self.default_model = "llama3-70b-8192"  # Fast and capable
+        # Try GROQ_API_KEY first, then fallback to GROQ_API_KEY_INTERVIEW
+        api_key = settings.GROQ_API_KEY_JOURNAL or settings.GROQ_API_KEY or settings.GROQ_API_KEY_INTERVIEW
         
+        if not api_key:
+            raise ValueError("GROQ_API_KEY or GROQ_API_KEY_INTERVIEW must be set in .env")
+        
+        self.client = Groq(api_key=api_key)
+        self.default_model = "llama-3.3-70b-versatile"  # Fast and capable
+    
     async def generate(
         self,
         prompt: str,
@@ -44,33 +52,101 @@ class LLMService:
                 response_format={"type": "json_object"} if json_mode else {"type": "text"}
             )
             
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            logger.debug(f"LLM response length: {len(content)} chars")
+            return content
+            
         except Exception as e:
             logger.error(f"LLM generation error: {e}")
             return ""
+    
+    def _extract_json_from_response(self, response: str) -> Union[Dict, List, None]:
+        """Extract JSON from response with markdown code block handling"""
+        if not response or not response.strip():
+            logger.error("Empty response received")
+            return None
+        
+        try:
+            # Try direct JSON parse first
+            return json.loads(response)
+        except json.JSONDecodeError:
+            pass
+        
+        # Try extracting from markdown code blocks
+        code_block_pattern = re.compile(
+            r"``````",
+            re.DOTALL | re.IGNORECASE
+        )
+        
+        match = code_block_pattern.search(response)
+        if match:
+            json_str = match.group(1).strip()
+            try:
+                return json.loads(json_str)
+            except json.JSONDecodeError:
+                pass
+        
+        # Last resort: try to find JSON-like structure
+        # Look for array
+        array_match = re.search(r'\[\s*\{.*?\}\s*\]', response, re.DOTALL)
+        if array_match:
+            try:
+                return json.loads(array_match.group(0))
+            except json.JSONDecodeError:
+                pass
+        
+        # Look for object
+        object_match = re.search(r'\{\s*".*?\}\s*', response, re.DOTALL)
+        if object_match:
+            try:
+                return json.loads(object_match.group(0))
+            except json.JSONDecodeError:
+                pass
+        
+        logger.error(f"Could not extract JSON from response: {response[:500]}")
+        return None
     
     async def generate_json(
         self,
         prompt: str,
         system_prompt: Optional[str] = None,
         model: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> Union[Dict[str, Any], List[Any]]:
         """
-        Generate JSON output
+        Generate JSON output (can return dict or list)
         """
         system = system_prompt or "You are a helpful assistant that responds in JSON format."
+        
+        # Add explicit JSON instruction to prompt
+        if "Return ONLY valid JSON" not in prompt:
+            prompt = prompt + "\n\nReturn ONLY valid JSON. No markdown, no explanations."
+        
         response = await self.generate(
             prompt=prompt,
             system_prompt=system,
             model=model,
-            json_mode=True
+            json_mode=True,  # Force JSON mode
+            temperature=0.3  # Lower temp for more consistent JSON
         )
         
-        try:
-            return json.loads(response)
-        except json.JSONDecodeError:
-            logger.error(f"Failed to parse JSON: {response}")
+        if not response:
+            logger.error("Empty response from LLM")
             return {}
+        
+        # Log raw response for debugging
+        logger.debug(f"Raw LLM JSON response (first 500 chars): {response[:500]}")
+        
+        # Extract and parse JSON
+        parsed = self._extract_json_from_response(response)
+        
+        if parsed is None:
+            logger.error(f"Failed to parse JSON from response")
+            return {}
+        
+        logger.debug(f"Successfully parsed JSON of type: {type(parsed)}")
+        return parsed
+    
+    # ... rest of your methods remain the same ...
     
     async def analyze_resume(
         self,
@@ -317,6 +393,7 @@ Generate a warm, encouraging, personalized message that:
         system_prompt = "You are a supportive career coach who provides genuine, warm encouragement."
         
         return await self.generate(prompt, system_prompt, temperature=0.9)
+
 
 # Singleton instance
 llm_service = LLMService()

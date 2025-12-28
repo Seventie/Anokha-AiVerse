@@ -1,298 +1,193 @@
 // frontend/src/components/Interview/InterviewResults.tsx
 
 import React, { useState, useEffect } from 'react';
-import { interviewService, Evaluation } from '../../services/interviewService';
+import { interviewService } from '../../services/interviewService';
+import { Download, Share2, ArrowLeft, Loader } from 'lucide-react';
+import InterviewAnalytics from './InterviewAnalytics';
 
 interface Props {
   interviewId: string;
-  onClose: () => void;
+  onBackHome: () => void;
 }
 
-const InterviewResults: React.FC<Props> = ({ interviewId, onClose }) => {
-  const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
-  const [conversation, setConversation] = useState<any[]>([]);
+const InterviewResults: React.FC<Props> = ({ interviewId, onBackHome }) => {
+  const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'transcript' | 'recommendations'>('overview');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     loadResults();
-  }, []);
+  }, [interviewId]);
 
   const loadResults = async () => {
     try {
-      const [evalData, convData] = await Promise.all([
-        interviewService.getEvaluation(interviewId),
-        interviewService.getConversation(interviewId)
-      ]);
-      
-      setEvaluation(evalData);
-      setConversation(convData);
-    } catch (error) {
-      console.error('Failed to load results:', error);
+      setLoading(true);
+      const data = await interviewService.getResults(interviewId);
+      setResults(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load results');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDownloadReport = async () => {
+    try {
+      await interviewService.downloadReport(interviewId);
+    } catch (err) {
+      console.error('Failed to download report:', err);
+    }
+  };
+
+  const handleShareResults = async () => {
+    try {
+      const url = `${window.location.origin}/interview-results/${interviewId}`;
+      await navigator.clipboard.writeText(url);
+      alert('Results link copied to clipboard!');
+    } catch (err) {
+      console.error('Failed to share results:', err);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">Loading results...</div>
+      <div className="min-h-screen bg-[#0b1714] flex items-center justify-center">
+        <Loader className="w-10 h-10 animate-spin text-primary" />
       </div>
     );
   }
-
-  if (!evaluation) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-red-500">Failed to load evaluation</div>
-      </div>
-    );
-  }
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getScoreBgColor = (score: number) => {
-    if (score >= 80) return 'bg-green-100';
-    if (score >= 60) return 'bg-yellow-100';
-    return 'bg-red-100';
-  };
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      {/* Header */}
-      <div className="mb-8 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Interview Results</h1>
-          <p className="text-gray-600">Comprehensive performance evaluation</p>
+    <div className="min-h-screen bg-[#0b1714] text-white">
+      <div className="max-w-[1400px] mx-auto px-8 md:px-24 py-12 space-y-10">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-4">
+          <button
+            onClick={onBackHome}
+            className="inline-flex items-center gap-2 text-sm font-light text-white/70 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Mock Interview Menu</span>
+          </button>
+          <span className="text-[11px] tracking-[0.3em] text-white/40 uppercase">
+            Interview Results
+          </span>
         </div>
-        <button
-          onClick={onClose}
-          className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-        >
-          Back to Dashboard
-        </button>
-      </div>
 
-      {/* Overall Score Card */}
-      <div className="mb-8 p-8 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-2xl shadow-xl">
-        <div className="text-center">
-          <div className="text-6xl font-bold mb-2">{evaluation.overall_score.toFixed(0)}</div>
-          <div className="text-2xl mb-4">Overall Score</div>
-          <div className="flex justify-center gap-8 mt-6">
-            <div>
-              <div className="text-3xl font-bold">{evaluation.technical_score.toFixed(0)}</div>
-              <div className="text-sm opacity-80">Technical</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold">{evaluation.communication_score.toFixed(0)}</div>
-              <div className="text-sm opacity-80">Communication</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold">{evaluation.problem_solving_score.toFixed(0)}</div>
-              <div className="text-sm opacity-80">Problem Solving</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold">{evaluation.confidence_score.toFixed(0)}</div>
-              <div className="text-sm opacity-80">Confidence</div>
-            </div>
+        {error && (
+          <div className="px-4 py-3 rounded-xl bg-red-500/15 border border-red-500/40 text-xs text-red-100">
+            {error}
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Tabs */}
-      <div className="mb-6 border-b">
-        <div className="flex gap-6">
-          {(['overview', 'transcript', 'recommendations'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`pb-3 px-2 font-medium capitalize ${
-                activeTab === tab
-                  ? 'border-b-2 border-blue-500 text-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
+        {results && (
+          <>
+            {/* Score card */}
+            <div className="grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-8 items-center">
+              <div className="p-10 rounded-[3rem] bg-white/[0.06] border border-white/15 backdrop-blur-sm text-center shadow-2xl shadow-black/40">
+                <p className="text-[11px] font-medium tracking-[0.3em] uppercase text-white/60 mb-4">
+                  Final Score
+                </p>
+                <p className="text-6xl md:text-7xl font-semibold text-primary mb-3">
+                  {results.overall_score || 0}%
+                </p>
+                <p className="text-xs text-white/70">
+                  Duration: {results.duration || 'N/A'}
+                </p>
+                <p className="text-xs text-white/60 mt-2">
+                  {results.interview_type === 'company_specific'
+                    ? results.company_name || 'Company-specific mock interview'
+                    : 'Custom topics mock interview'}
+                </p>
+              </div>
 
-      {/* Tab Content */}
-      {activeTab === 'overview' && (
-        <div className="space-y-6">
-          {/* Detailed Scores */}
-          <div className="grid grid-cols-2 gap-6">
-            {[
-              { label: 'Technical Skills', score: evaluation.technical_score },
-              { label: 'Communication', score: evaluation.communication_score },
-              { label: 'Problem Solving', score: evaluation.problem_solving_score },
-              { label: 'Confidence', score: evaluation.confidence_score }
-            ].map((item) => (
-              <div key={item.label} className={`p-6 rounded-lg ${getScoreBgColor(item.score)}`}>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-semibold">{item.label}</span>
-                  <span className={`text-2xl font-bold ${getScoreColor(item.score)}`}>
-                    {item.score.toFixed(0)}
-                  </span>
-                </div>
-                <div className="w-full bg-white rounded-full h-3">
-                  <div
-                    className={`h-3 rounded-full ${
-                      item.score >= 80
-                        ? 'bg-green-500'
-                        : item.score >= 60
-                        ? 'bg-yellow-500'
-                        : 'bg-red-500'
-                    }`}
-                    style={{ width: `${item.score}%` }}
-                  />
+              {/* Actions and short message */}
+              <div className="space-y-5">
+                <p className="text-lg font-light leading-relaxed text-white/90">
+                  Review your performance, understand your strengths, and focus your next sprint on
+                  the most impactful improvements.
+                </p>
+                <div className="flex flex-col md:flex-row gap-3">
+                  <button
+                    onClick={handleDownloadReport}
+                    className="flex-1 py-3 rounded-2xl bg-primary text-white text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download Report
+                  </button>
+                  <button
+                    onClick={handleShareResults}
+                    className="flex-1 py-3 rounded-2xl border border-primary text-primary text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-primary/10 transition-colors"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    Share Results
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-
-          {/* Strengths */}
-          {evaluation.strengths.length > 0 && (
-            <div className="p-6 bg-green-50 rounded-lg">
-              <h3 className="text-xl font-bold mb-4 text-green-700">✅ Key Strengths</h3>
-              <ul className="space-y-2">
-                {evaluation.strengths.map((strength, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <span className="text-green-600 text-xl">✓</span>
-                    <span className="text-gray-700">{strength}</span>
-                  </li>
-                ))}
-              </ul>
             </div>
-          )}
 
-          {/* Weaknesses */}
-          {evaluation.weaknesses.length > 0 && (
-            <div className="p-6 bg-yellow-50 rounded-lg">
-              <h3 className="text-xl font-bold mb-4 text-yellow-700">⚠️ Areas for Improvement</h3>
-              <ul className="space-y-2">
-                {evaluation.weaknesses.map((weakness, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <span className="text-yellow-600 text-xl">!</span>
-                    <span className="text-gray-700">{weakness}</span>
-                  </li>
-                ))}
-              </ul>
+            {/* Analytics */}
+            <div className="p-8 rounded-[3rem] bg-white/[0.04] border border-white/15 backdrop-blur-sm">
+              <InterviewAnalytics interviewId={interviewId} />
             </div>
-          )}
-        </div>
-      )}
 
-      {activeTab === 'transcript' && (
-        <div className="space-y-4">
-          <h3 className="text-xl font-bold mb-4">Interview Transcript</h3>
-          {conversation.map((msg, index) => (
-            <div
-              key={index}
-              className={`p-4 rounded-lg ${
-                msg.speaker === 'ai'
-                  ? 'bg-blue-50 border-l-4 border-blue-500'
-                  : 'bg-gray-50 border-l-4 border-gray-500'
-              }`}
-            >
-              <div className="flex justify-between items-start mb-2">
-                <span className="font-semibold">
-                  {msg.speaker === 'ai' ? '🤖 Interviewer' : '👤 You'}
-                </span>
-                {msg.score && (
-                  <span className={`font-bold ${getScoreColor(msg.score)}`}>
-                    {msg.score.toFixed(0)}/100
-                  </span>
-                )}
+            {/* Q&A Review */}
+            {results.qa_pairs && results.qa_pairs.length > 0 && (
+              <div className="p-8 rounded-[3rem] bg-white/[0.04] border border-white/15 backdrop-blur-sm space-y-6">
+                <h2 className="text-xl md:text-2xl font-medium text-white">
+                  Question & Answer <span className="font-serif italic text-primary">Review</span>
+                </h2>
+                <div className="space-y-5">
+                  {results.qa_pairs.map((pair: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className="p-6 rounded-2xl bg-white/5 border border-white/15 space-y-4"
+                    >
+                      {/* Question */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-xs text-white/60">
+                          <span className="px-3 py-1 rounded-full bg-primary/20 text-primary font-semibold text-[10px] tracking-[0.2em] uppercase">
+                            Q{idx + 1}
+                          </span>
+                          <span>
+                            {pair.round_type} • {pair.difficulty}
+                          </span>
+                        </div>
+                        <p className="text-sm text-white/90">{pair.question}</p>
+                      </div>
+
+                      {/* Answer */}
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-medium tracking-[0.25em] uppercase text-white/50">
+                          Your Answer
+                        </p>
+                        <p className="text-sm text-white/85 leading-relaxed">
+                          {pair.answer}
+                        </p>
+                      </div>
+
+                      {/* Feedback + Score */}
+                      <div className="pt-4 border-t border-white/10 flex flex-col md:flex-row justify-between gap-3">
+                        <div>
+                          <p className="text-[11px] font-medium tracking-[0.25em] uppercase text-white/50 mb-1">
+                            Feedback
+                          </p>
+                          <p className="text-xs text-white/80">
+                            {pair.feedback || 'No specific recommendations for this question.'}
+                          </p>
+                        </div>
+                        <div className="self-start md:self-center px-4 py-1.5 rounded-xl bg-primary text-white text-xs font-semibold">
+                          {pair.score}/10
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <p className="text-gray-700 whitespace-pre-wrap">{msg.message}</p>
-              {msg.audio_url && (
-                <audio controls className="mt-2 w-full">
-                  <source src={`http://localhost:8000${msg.audio_url}`} type="audio/wav" />
-                </audio>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {activeTab === 'recommendations' && (
-        <div className="space-y-6">
-          <div className="p-6 bg-blue-50 rounded-lg">
-            <h3 className="text-xl font-bold mb-4 text-blue-700">📚 Personalized Recommendations</h3>
-            {evaluation.recommendations.length > 0 ? (
-              <ul className="space-y-3">
-                {evaluation.recommendations.map((rec, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <span className="text-blue-600 text-xl">→</span>
-                    <span className="text-gray-700">{rec}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-600">No specific recommendations at this time.</p>
             )}
-          </div>
-
-          {/* Next Steps */}
-          <div className="p-6 bg-purple-50 rounded-lg">
-            <h3 className="text-xl font-bold mb-4 text-purple-700">🎯 Next Steps</h3>
-            <div className="space-y-4">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center font-bold text-purple-700">
-                  1
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-1">Review Feedback</h4>
-                  <p className="text-sm text-gray-600">
-                    Study the strengths and weaknesses identified in this interview.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center font-bold text-purple-700">
-                  2
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-1">Practice Weak Areas</h4>
-                  <p className="text-sm text-gray-600">
-                    Focus on the areas for improvement before your next interview.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center font-bold text-purple-700">
-                  3
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-1">Retake in 1 Week</h4>
-                  <p className="text-sm text-gray-600">
-                    Schedule another mock interview to track your improvement.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-4">
-            <button className="flex-1 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
-              Schedule Next Interview
-            </button>
-            <button className="flex-1 py-3 border border-blue-500 text-blue-500 rounded-lg hover:bg-blue-50">
-              Download Report (PDF)
-            </button>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

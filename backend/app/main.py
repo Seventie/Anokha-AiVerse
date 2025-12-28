@@ -9,6 +9,10 @@ from app.config.database import engine
 from app.models.database import Base
 import logging
 from app.routes import resume 
+from app.routes import opportunities
+from app.routes import journal
+from app.routes import profile
+from app.routes import dashboard  
 
 
 import numpy as np
@@ -115,7 +119,11 @@ app.include_router(auth.router)
 app.include_router(agents.router)
 app.include_router(knowledge_graph.router) 
 app.include_router(interview.router) 
-app.include_router(resume.router) # NEW: Knowledge Graph routes
+app.include_router(resume.router) 
+app.include_router(opportunities.router)
+app.include_router(journal.router)
+app.include_router(profile.router)
+app.include_router(dashboard.router)
 
 # Compatibility WebSocket route: support legacy clients connecting to '/ws'
 from app.routes import agents as agents_routes
