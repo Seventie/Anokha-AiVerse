@@ -1,11 +1,10 @@
 # backend/app/main.py
-
+from app.routes import auth, agents
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.settings import settings
 from app.config.database import engine
 from app.models.database import Base
-from app.routes import auth
 import logging
 
 import numpy as np
@@ -46,6 +45,7 @@ async def startup_event():
 
 # Include routers
 app.include_router(auth.router)
+app.include_router(agents.router)
 
 # Health check endpoint
 @app.get("/")
@@ -72,3 +72,4 @@ if __name__ == "__main__":
         port=settings.PORT,
         reload=settings.ENVIRONMENT == "development"
     )
+    

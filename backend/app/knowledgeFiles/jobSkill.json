@@ -1,0 +1,151 @@
+[{
+        "job_role": "Backend Engineer",
+        "core_skills": ["Data Structures", "Algorithms", "System Design", "Databases", "REST APIs", "Python", "Git", "Testing"],
+        "nice_to_have_skills": ["Docker", "Kubernetes", "Redis", "Message Queues", "Microservices", "GraphQL", "Caching"]
+    },
+    {
+        "job_role": "Frontend Engineer",
+        "core_skills": ["JavaScript", "HTML", "CSS", "React", "Responsive Design", "Git", "Testing", "REST APIs"],
+        "nice_to_have_skills": ["TypeScript", "Vue.js", "Angular", "Performance Optimization", "UI/UX Design", "GraphQL"]
+    },
+    {
+        "job_role": "Full Stack Engineer",
+        "core_skills": ["JavaScript", "Python", "React", "Node.js", "Databases", "REST APIs", "System Design", "Git"],
+        "nice_to_have_skills": ["TypeScript", "Docker", "AWS", "PostgreSQL", "MongoDB", "CI/CD", "Testing"]
+    },
+    {
+        "job_role": "Mobile Developer",
+        "core_skills": ["React Native", "JavaScript", "Swift", "Kotlin", "Git", "REST APIs", "Mobile UI Design"],
+        "nice_to_have_skills": ["Flutter", "Testing", "Performance Optimization", "CI/CD", "GraphQL"]
+    },
+    {
+        "job_role": "DevOps Engineer",
+        "core_skills": ["Docker", "Kubernetes", "AWS", "Linux", "CI/CD", "Git", "Monitoring", "Terraform"],
+        "nice_to_have_skills": ["Ansible", "GCP", "Azure", "Python", "Go", "Logging", "Security"]
+    },
+    {
+        "job_role": "Site Reliability Engineer",
+        "core_skills": ["Linux", "Kubernetes", "Monitoring", "Distributed Systems", "Python", "Networking", "Scalability"],
+        "nice_to_have_skills": ["Go", "Terraform", "Load Balancing", "Performance Optimization", "Incident Response"]
+    },
+    {
+        "job_role": "Data Engineer",
+        "core_skills": ["Python", "SQL", "ETL", "Apache Spark", "Databases", "Data Warehousing", "Kafka"],
+        "nice_to_have_skills": ["AWS", "Airflow", "Pandas", "Docker", "PostgreSQL", "MongoDB"]
+    },
+    {
+        "job_role": "Data Scientist",
+        "core_skills": ["Python", "Statistics", "Machine Learning", "Pandas", "NumPy", "Data Visualization", "SQL"],
+        "nice_to_have_skills": ["Deep Learning", "TensorFlow", "PyTorch", "Scikit-learn", "R", "Jupyter"]
+    },
+    {
+        "job_role": "Machine Learning Engineer",
+        "core_skills": ["Python", "Machine Learning", "Deep Learning", "TensorFlow", "PyTorch", "Data Structures", "Algorithms"],
+        "nice_to_have_skills": ["MLOps", "Docker", "Kubernetes", "AWS", "Model Optimization", "Distributed Training"]
+    },
+    {
+        "job_role": "AI Research Scientist",
+        "core_skills": ["Deep Learning", "Machine Learning", "Python", "PyTorch", "Research Methodology", "Mathematics", "Statistics"],
+        "nice_to_have_skills": ["Computer Vision", "Natural Language Processing", "Reinforcement Learning", "Paper Writing"]
+    },
+    {
+        "job_role": "Cloud Architect",
+        "core_skills": ["AWS", "System Design", "Microservices", "Networking", "Security", "Scalability", "Cost Optimization"],
+        "nice_to_have_skills": ["Azure", "GCP", "Terraform", "Kubernetes", "Serverless", "Multi-cloud"]
+    },
+    {
+        "job_role": "Security Engineer",
+        "core_skills": ["Security", "Cryptography", "Networking", "Linux", "OWASP", "Penetration Testing", "Incident Response"],
+        "nice_to_have_skills": ["Cloud Security", "Python", "Compliance", "Threat Modeling", "Security Automation"]
+    },
+    {
+        "job_role": "Penetration Tester",
+        "core_skills": ["Penetration Testing", "Security", "Networking", "Linux", "OWASP", "Ethical Hacking", "Vulnerability Assessment"],
+        "nice_to_have_skills": ["Python", "Metasploit", "Burp Suite", "Cryptography", "Red Teaming"]
+    },
+    {
+        "job_role": "Product Manager",
+        "core_skills": ["Product Management", "Communication", "Problem Solving", "Agile", "Stakeholder Management", "User Research"],
+        "nice_to_have_skills": ["Technical Background", "Data Analysis", "UI/UX Design", "A/B Testing", "SQL"]
+    },
+    {
+        "job_role": "Engineering Manager",
+        "core_skills": ["Leadership", "Communication", "Mentoring", "Agile", "Technical Architecture", "Hiring", "Performance Management"],
+        "nice_to_have_skills": ["System Design", "Project Management", "Conflict Resolution", "Budget Management"]
+    },
+    {
+        "job_role": "Systems Engineer",
+        "core_skills": ["Linux", "Networking", "Operating Systems", "Computer Architecture", "Performance Optimization", "Bash Scripting"],
+        "nice_to_have_skills": ["C", "Python", "Kernel Development", "Distributed Systems", "Storage Systems"]
+    },
+    {
+        "job_role": "Database Administrator",
+        "core_skills": ["SQL", "PostgreSQL", "MySQL", "Database Design", "Performance Tuning", "Backup and Recovery", "Replication"],
+        "nice_to_have_skills": ["MongoDB", "Redis", "High Availability", "Disaster Recovery", "Security"]
+    },
+    {
+        "job_role": "Blockchain Developer",
+        "core_skills": ["Solidity", "Blockchain", "Web3", "Cryptography", "Smart Contracts", "Ethereum", "Data Structures"],
+        "nice_to_have_skills": ["JavaScript", "Rust", "DeFi", "NFTs", "Layer 2 Solutions", "Security"]
+    },
+    {
+        "job_role": "Embedded Systems Engineer",
+        "core_skills": ["C", "Embedded Systems", "RTOS", "Microcontrollers", "Hardware Interfaces", "Debugging", "Assembly"],
+        "nice_to_have_skills": ["C++", "IoT", "Protocols", "Circuit Design", "Power Management"]
+    },
+    {
+        "job_role": "QA Engineer",
+        "core_skills": ["Testing", "Test Automation", "Selenium", "Git", "Bug Tracking", "Agile", "Test Planning"],
+        "nice_to_have_skills": ["Python", "Java", "CI/CD", "Performance Testing", "API Testing", "Mobile Testing"]
+    },
+    {
+        "job_role": "Solutions Architect",
+        "core_skills": ["System Design", "Cloud Architecture", "Microservices", "Communication", "Technical Leadership", "AWS", "Problem Solving"],
+        "nice_to_have_skills": ["Consulting", "Stakeholder Management", "Multiple Tech Stacks", "Cost Optimization"]
+    },
+    {
+        "job_role": "Quantitative Analyst",
+        "core_skills": ["Statistics", "Python", "Mathematics", "Financial Modeling", "Algorithms", "Data Analysis", "Machine Learning"],
+        "nice_to_have_skills": ["C++", "Risk Management", "Options Pricing", "Time Series", "R"]
+    },
+    {
+        "job_role": "Algorithmic Trader",
+        "core_skills": ["Python", "C++", "Algorithms", "Statistics", "Low Latency Systems", "Financial Markets", "Backtesting"],
+        "nice_to_have_skills": ["Machine Learning", "High Frequency Trading", "Market Microstructure", "Java"]
+    },
+    {
+        "job_role": "Computer Vision Engineer",
+        "core_skills": ["Computer Vision", "Deep Learning", "Python", "PyTorch", "TensorFlow", "Image Processing", "OpenCV"],
+        "nice_to_have_skills": ["3D Vision", "Object Detection", "Segmentation", "CUDA", "C++"]
+    },
+    {
+        "job_role": "NLP Engineer",
+        "core_skills": ["Natural Language Processing", "Deep Learning", "Python", "PyTorch", "Transformers", "Language Models", "Text Processing"],
+        "nice_to_have_skills": ["LLMs", "Fine-tuning", "Prompt Engineering", "Information Extraction", "Named Entity Recognition"]
+    },
+    {
+        "job_role": "Game Developer",
+        "core_skills": ["Unity", "C++", "3D Graphics", "Game Physics", "Object Oriented Programming", "Mathematics", "Debugging"],
+        "nice_to_have_skills": ["Unreal Engine", "Shaders", "Multiplayer", "Optimization", "AI for Games"]
+    },
+    {
+        "job_role": "Data Analyst",
+        "core_skills": ["SQL", "Excel", "Data Visualization", "Statistics", "Python", "Pandas", "Business Analysis"],
+        "nice_to_have_skills": ["Tableau", "Power BI", "R", "A/B Testing", "Presentation Skills"]
+    },
+    {
+        "job_role": "Business Intelligence Engineer",
+        "core_skills": ["SQL", "Data Warehousing", "ETL", "Data Modeling", "Tableau", "Python", "Business Analysis"],
+        "nice_to_have_skills": ["Apache Spark", "AWS", "Looker", "Power BI", "Data Governance"]
+    },
+    {
+        "job_role": "Platform Engineer",
+        "core_skills": ["Kubernetes", "Docker", "CI/CD", "Python", "Infrastructure as Code", "Developer Tools", "Automation"],
+        "nice_to_have_skills": ["Go", "Terraform", "Service Mesh", "GitOps", "Monitoring"]
+    },
+    {
+        "job_role": "Technical Writer",
+        "core_skills": ["Technical Documentation", "Writing", "API Documentation", "Communication", "Information Architecture", "Markdown"],
+        "nice_to_have_skills": ["Programming Basics", "Git", "DevOps Knowledge", "Video Creation", "Documentation Tools"]
+    }
+]

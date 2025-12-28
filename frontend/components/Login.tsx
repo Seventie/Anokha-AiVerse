@@ -25,8 +25,7 @@ const Login: React.FC<LoginProps> = ({ onForgotPassword, onSignUp, onDashboard }
         duration: 1.4, 
         stagger: 0.15, 
         ease: 'expo.out',
-        clearProps: 'opacity',
-       
+        clearProps: 'opacity'
       });
       gsap.from('.l-form-reveal', { 
         scale: 0.95, 
@@ -34,8 +33,7 @@ const Login: React.FC<LoginProps> = ({ onForgotPassword, onSignUp, onDashboard }
         duration: 1.6, 
         delay: 0.4, 
         ease: 'power4.out',
-        clearProps: 'opacity',
-        
+        clearProps: 'opacity'
       });
     }
   }, []);

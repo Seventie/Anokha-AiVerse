@@ -1,6 +1,6 @@
 // frontend/services/apiService.ts
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 interface ApiResponse<T> {
   data?: T;
@@ -41,10 +41,20 @@ class ApiService {
 
   // Auth endpoints
   async register(userData: any) {
-    return this.request('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    });
+    const response = await this.request<{ user: any; access_token: string; token_type: string }>(
+      '/api/auth/register',
+      {
+        method: 'POST',
+        body: JSON.stringify(userData),
+      }
+    );
+
+    if (response.data) {
+      // Store token
+      localStorage.setItem('auth_token', response.data.access_token);
+    }
+
+    return response;
   }
 
   async login(email: string, password: string) {
