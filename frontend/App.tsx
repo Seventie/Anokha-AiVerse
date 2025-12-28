@@ -15,11 +15,14 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const session = authService.getSession();
-    if (session) {
-      setUser(session);
-      setCurrentView('dashboard');
-    }
+    const loadSession = async () => {
+      const session = await authService.getSession();
+      if (session) {
+        setUser(session);
+        setCurrentView('dashboard');
+      }
+    };
+    loadSession();
   }, []);
 
   useEffect(() => {

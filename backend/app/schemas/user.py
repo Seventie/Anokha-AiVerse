@@ -1,6 +1,6 @@
 # backend/app/schemas/user.py
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional
 from datetime import datetime
 
@@ -11,12 +11,23 @@ class EducationBase(BaseModel):
     major: Optional[str] = None
     location: Optional[str] = None
     duration: str
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    grade: Optional[str] = None
 
 class EducationCreate(EducationBase):
     pass
 
-class EducationResponse(EducationBase):
+class EducationResponse(BaseModel):
     id: int
+    institution: str
+    degree: str
+    major: Optional[str] = None
+    location: Optional[str] = None
+    duration: str
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    grade: Optional[str] = None
     is_confirmed: bool
     
     class Config:
@@ -40,14 +51,19 @@ class SkillResponse(SkillBase):
 
 class ProjectBase(BaseModel):
     title: str
-    description: str
-    techStack: str
+    description: str = ""
+    techStack: str = ""
+    link: Optional[str] = None
 
 class ProjectCreate(ProjectBase):
     pass
 
-class ProjectResponse(ProjectBase):
+class ProjectResponse(BaseModel):
     id: int
+    title: str
+    description: str = ""
+    techStack: str = Field(default="")
+    link: Optional[str] = None
     is_confirmed: bool
     
     class Config:
@@ -57,14 +73,23 @@ class ExperienceBase(BaseModel):
     role: str
     company: str
     location: Optional[str] = None
-    duration: str
-    description: str
+    duration: str = ""
+    description: str = ""
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
 
 class ExperienceCreate(ExperienceBase):
     pass
 
-class ExperienceResponse(ExperienceBase):
+class ExperienceResponse(BaseModel):
     id: int
+    role: str
+    company: str
+    location: Optional[str] = None
+    duration: str = ""
+    description: str = ""
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
     is_confirmed: bool
     
     class Config:
@@ -77,8 +102,10 @@ class AvailabilityBase(BaseModel):
 class AvailabilityCreate(AvailabilityBase):
     pass
 
-class AvailabilityResponse(AvailabilityBase):
+class AvailabilityResponse(BaseModel):
     id: int
+    freeTime: str
+    studyDays: List[str]
     
     class Config:
         from_attributes = True
@@ -91,16 +118,16 @@ class UserRegister(BaseModel):
     fullName: str
     location: Optional[str] = None
     preferredLocations: List[str] = []
-    currentStatus: str
-    fieldOfInterest: str
+    currentStatus: Optional[str] = "Working Professional"
+    fieldOfInterest: Optional[str] = "Software Engineering"
     education: List[EducationCreate] = []
     experience: List[ExperienceCreate] = []
     projects: List[ProjectCreate] = []
-    skills: dict  # {technical: [], soft: []}
-    availability: AvailabilityCreate
-    targetRole: str
-    timeline: str
-    visionStatement: str
+    skills: Optional[dict] = Field(default_factory=lambda: {"technical": [], "soft": []})  # {technical: [], soft: []}
+    availability: Optional[AvailabilityCreate] = None
+    targetRole: Optional[str] = "Software Engineer"
+    timeline: Optional[str] = "6 Months"
+    visionStatement: Optional[str] = ""
 
 # User Login
 class UserLogin(BaseModel):
@@ -118,25 +145,31 @@ class UserResponse(BaseModel):
     email: str
     username: str
     fullName: str
-    location: Optional[str]
-    preferredLocations: List[str]
-    currentStatus: str
-    fieldOfInterest: str
-    targetRole: str
-    timeline: str
-    visionStatement: str
-    readiness_level: str
-    is_demo: bool
+    location: Optional[str] = Field(default="")
+    preferredLocations: List[str] = Field(default_factory=list)
+    currentStatus: str = Field(default="beginner")
+    fieldOfInterest: str = Field(default="Software Engineering")
+    targetRole: str = Field(default="Software Engineer")
+    timeline: str = Field(default="6 Months")
+    visionStatement: str = Field(default="")
+    readiness_level: str = Field(default="beginner")
+    is_demo: bool = Field(default=False)
     created_at: datetime
     
-    education: List[EducationResponse]
-    skills: List[SkillResponse]
-    projects: List[ProjectResponse]
-    experience: List[ExperienceResponse]
-    availability: Optional[AvailabilityResponse]
+    education: List[EducationResponse] = Field(default_factory=list)
+    skills: List[SkillResponse] = Field(default_factory=list)
+    projects: List[ProjectResponse] = Field(default_factory=list)
+    experience: List[ExperienceResponse] = Field(default_factory=list)
+    availability: Optional[AvailabilityResponse] = Field(default=None)
     
     class Config:
         from_attributes = True
+
+# Registration Response (includes token)
+class UserRegisterResponse(BaseModel):
+    user: UserResponse
+    access_token: str
+    token_type: str = "bearer"
 
 # Resume Upload
 class ResumeUpload(BaseModel):

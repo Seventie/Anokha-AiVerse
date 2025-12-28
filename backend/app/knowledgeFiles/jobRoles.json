@@ -1,0 +1,181 @@
+[{
+        "name": "Backend Engineer",
+        "short_description": "Designs and implements server-side logic, APIs, and database architecture. Ensures scalability, performance, and security of backend systems.",
+        "industry": "Software Engineering",
+        "seniority_levels": ["junior", "mid", "senior"]
+    },
+    {
+        "name": "Frontend Engineer",
+        "short_description": "Builds user interfaces and client-side applications. Focuses on responsive design, performance optimization, and user experience.",
+        "industry": "Software Engineering",
+        "seniority_levels": ["junior", "mid", "senior"]
+    },
+    {
+        "name": "Full Stack Engineer",
+        "short_description": "Works across both frontend and backend systems. Develops end-to-end features and understands the complete application lifecycle.",
+        "industry": "Software Engineering",
+        "seniority_levels": ["mid", "senior"]
+    },
+    {
+        "name": "Mobile Developer",
+        "short_description": "Creates native or cross-platform mobile applications. Specializes in iOS, Android, or frameworks like React Native and Flutter.",
+        "industry": "Software Engineering",
+        "seniority_levels": ["junior", "mid", "senior"]
+    },
+    {
+        "name": "DevOps Engineer",
+        "short_description": "Manages CI/CD pipelines, infrastructure automation, and deployment processes. Bridges development and operations teams.",
+        "industry": "DevOps",
+        "seniority_levels": ["mid", "senior"]
+    },
+    {
+        "name": "Site Reliability Engineer",
+        "short_description": "Ensures system reliability, availability, and performance at scale. Implements monitoring, incident response, and capacity planning.",
+        "industry": "DevOps",
+        "seniority_levels": ["mid", "senior"]
+    },
+    {
+        "name": "Data Engineer",
+        "short_description": "Builds and maintains data pipelines, warehouses, and ETL processes. Ensures data quality and accessibility for analytics.",
+        "industry": "Data",
+        "seniority_levels": ["junior", "mid", "senior"]
+    },
+    {
+        "name": "Data Scientist",
+        "short_description": "Analyzes complex datasets to extract insights and build predictive models. Combines statistics, machine learning, and domain expertise.",
+        "industry": "Data",
+        "seniority_levels": ["mid", "senior"]
+    },
+    {
+        "name": "Machine Learning Engineer",
+        "short_description": "Develops and deploys machine learning models at scale. Focuses on model training, optimization, and production infrastructure.",
+        "industry": "ML/AI",
+        "seniority_levels": ["mid", "senior"]
+    },
+    {
+        "name": "AI Research Scientist",
+        "short_description": "Conducts research in artificial intelligence and publishes findings. Develops novel algorithms and advances state-of-the-art techniques.",
+        "industry": "ML/AI",
+        "seniority_levels": ["senior"]
+    },
+    {
+        "name": "Cloud Architect",
+        "short_description": "Designs cloud infrastructure and migration strategies. Specializes in AWS, Azure, or GCP solutions and cost optimization.",
+        "industry": "Cloud",
+        "seniority_levels": ["senior"]
+    },
+    {
+        "name": "Security Engineer",
+        "short_description": "Protects systems from vulnerabilities and attacks. Implements security protocols, conducts audits, and responds to incidents.",
+        "industry": "Security",
+        "seniority_levels": ["mid", "senior"]
+    },
+    {
+        "name": "Penetration Tester",
+        "short_description": "Simulates attacks to identify security weaknesses. Performs ethical hacking and provides remediation recommendations.",
+        "industry": "Security",
+        "seniority_levels": ["mid", "senior"]
+    },
+    {
+        "name": "Product Manager",
+        "short_description": "Defines product vision, strategy, and roadmap. Coordinates between engineering, design, and business stakeholders.",
+        "industry": "Product",
+        "seniority_levels": ["mid", "senior"]
+    },
+    {
+        "name": "Engineering Manager",
+        "short_description": "Leads engineering teams and manages technical delivery. Balances people management with technical leadership.",
+        "industry": "Software Engineering",
+        "seniority_levels": ["senior"]
+    },
+    {
+        "name": "Systems Engineer",
+        "short_description": "Designs and maintains operating systems, networks, and infrastructure. Focuses on performance, reliability, and security.",
+        "industry": "Systems",
+        "seniority_levels": ["junior", "mid", "senior"]
+    },
+    {
+        "name": "Database Administrator",
+        "short_description": "Manages database systems, performance tuning, and backup strategies. Ensures data integrity and availability.",
+        "industry": "Systems",
+        "seniority_levels": ["mid", "senior"]
+    },
+    {
+        "name": "Blockchain Developer",
+        "short_description": "Develops decentralized applications and smart contracts. Works with blockchain protocols and cryptocurrency systems.",
+        "industry": "Software Engineering",
+        "seniority_levels": ["mid", "senior"]
+    },
+    {
+        "name": "Embedded Systems Engineer",
+        "short_description": "Programs firmware and hardware interfaces for embedded devices. Works on IoT, robotics, and low-level system programming.",
+        "industry": "Systems",
+        "seniority_levels": ["mid", "senior"]
+    },
+    {
+        "name": "QA Engineer",
+        "short_description": "Designs and executes test plans to ensure software quality. Implements automated testing frameworks and CI integration.",
+        "industry": "Software Engineering",
+        "seniority_levels": ["junior", "mid", "senior"]
+    },
+    {
+        "name": "Solutions Architect",
+        "short_description": "Designs end-to-end technical solutions for client requirements. Bridges business needs with technical implementation.",
+        "industry": "Software Engineering",
+        "seniority_levels": ["senior"]
+    },
+    {
+        "name": "Quantitative Analyst",
+        "short_description": "Develops mathematical models for financial markets and trading strategies. Uses statistics and programming for risk analysis.",
+        "industry": "Finance",
+        "seniority_levels": ["mid", "senior"]
+    },
+    {
+        "name": "Algorithmic Trader",
+        "short_description": "Builds automated trading systems and strategies. Combines finance knowledge with software engineering and data analysis.",
+        "industry": "Finance",
+        "seniority_levels": ["senior"]
+    },
+    {
+        "name": "Computer Vision Engineer",
+        "short_description": "Develops image and video processing systems. Applies deep learning for object detection, segmentation, and recognition.",
+        "industry": "ML/AI",
+        "seniority_levels": ["mid", "senior"]
+    },
+    {
+        "name": "NLP Engineer",
+        "short_description": "Builds natural language processing systems for text understanding and generation. Works with transformers, LLMs, and language models.",
+        "industry": "ML/AI",
+        "seniority_levels": ["mid", "senior"]
+    },
+    {
+        "name": "Game Developer",
+        "short_description": "Creates video games and interactive experiences. Works with game engines, physics, graphics, and gameplay mechanics.",
+        "industry": "Software Engineering",
+        "seniority_levels": ["junior", "mid", "senior"]
+    },
+    {
+        "name": "Data Analyst",
+        "short_description": "Analyzes data to provide business insights and recommendations. Creates dashboards, reports, and visualizations.",
+        "industry": "Data",
+        "seniority_levels": ["junior", "mid"]
+    },
+    {
+        "name": "Business Intelligence Engineer",
+        "short_description": "Builds BI systems and data warehouses for analytics. Develops reporting solutions and data visualization tools.",
+        "industry": "Data",
+        "seniority_levels": ["mid", "senior"]
+    },
+    {
+        "name": "Platform Engineer",
+        "short_description": "Builds internal platforms and developer tools. Improves engineering productivity through automation and infrastructure.",
+        "industry": "DevOps",
+        "seniority_levels": ["mid", "senior"]
+    },
+    {
+        "name": "Technical Writer",
+        "short_description": "Creates technical documentation, API references, and user guides. Translates complex technical concepts into clear content.",
+        "industry": "Product",
+        "seniority_levels": ["junior", "mid", "senior"]
+    }
+]

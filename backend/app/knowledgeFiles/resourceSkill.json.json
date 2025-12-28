@@ -1,0 +1,301 @@
+[{
+        "resource_title": "LeetCode",
+        "resource_type": "Platform",
+        "url": "https://leetcode.com",
+        "teaches_skills": ["Data Structures", "Algorithms", "Problem Solving"]
+    },
+    {
+        "resource_title": "System Design Primer",
+        "resource_type": "GitHub",
+        "url": "https://github.com/donnemartin/system-design-primer",
+        "teaches_skills": ["System Design", "Scalability", "Distributed Systems"]
+    },
+    {
+        "resource_title": "Designing Data-Intensive Applications",
+        "resource_type": "Book",
+        "url": "https://dataintensive.net",
+        "teaches_skills": ["System Design", "Databases", "Distributed Systems"]
+    },
+    {
+        "resource_title": "The Odin Project",
+        "resource_type": "Course",
+        "url": "https://theodinproject.com",
+        "teaches_skills": ["JavaScript", "React", "Node.js", "HTML", "CSS"]
+    },
+    {
+        "resource_title": "freeCodeCamp",
+        "resource_type": "Platform",
+        "url": "https://freecodecamp.org",
+        "teaches_skills": ["JavaScript", "React", "Python", "Data Structures"]
+    },
+    {
+        "resource_title": "MDN Web Docs",
+        "resource_type": "Documentation",
+        "url": "https://developer.mozilla.org",
+        "teaches_skills": ["JavaScript", "HTML", "CSS", "Web APIs"]
+    },
+    {
+        "resource_title": "React Official Documentation",
+        "resource_type": "Documentation",
+        "url": "https://react.dev",
+        "teaches_skills": ["React", "JavaScript", "Frontend Development"]
+    },
+    {
+        "resource_title": "FastAPI Documentation",
+        "resource_type": "Documentation",
+        "url": "https://fastapi.tiangolo.com",
+        "teaches_skills": ["FastAPI", "Python", "REST APIs"]
+    },
+    {
+        "resource_title": "Docker Documentation",
+        "resource_type": "Documentation",
+        "url": "https://docs.docker.com",
+        "teaches_skills": ["Docker", "Containerization", "DevOps"]
+    },
+    {
+        "resource_title": "Kubernetes Documentation",
+        "resource_type": "Documentation",
+        "url": "https://kubernetes.io/docs",
+        "teaches_skills": ["Kubernetes", "Container Orchestration", "DevOps"]
+    },
+    {
+        "resource_title": "AWS Training",
+        "resource_type": "Course",
+        "url": "https://aws.amazon.com/training",
+        "teaches_skills": ["AWS", "Cloud Computing", "Cloud Architecture"]
+    },
+    {
+        "resource_title": "PostgreSQL Tutorial",
+        "resource_type": "Documentation",
+        "url": "https://postgresqltutorial.com",
+        "teaches_skills": ["PostgreSQL", "SQL", "Databases"]
+    },
+    {
+        "resource_title": "MongoDB University",
+        "resource_type": "Course",
+        "url": "https://university.mongodb.com",
+        "teaches_skills": ["MongoDB", "NoSQL", "Database Design"]
+    },
+    {
+        "resource_title": "Coursera Machine Learning",
+        "resource_type": "Course",
+        "url": "https://coursera.org/learn/machine-learning",
+        "teaches_skills": ["Machine Learning", "Statistics", "Algorithms"]
+    },
+    {
+        "resource_title": "Fast.ai Deep Learning",
+        "resource_type": "Course",
+        "url": "https://fast.ai",
+        "teaches_skills": ["Deep Learning", "PyTorch", "Computer Vision", "Natural Language Processing"]
+    },
+    {
+        "resource_title": "PyTorch Tutorials",
+        "resource_type": "Documentation",
+        "url": "https://pytorch.org/tutorials",
+        "teaches_skills": ["PyTorch", "Deep Learning", "Neural Networks"]
+    },
+    {
+        "resource_title": "TensorFlow Documentation",
+        "resource_type": "Documentation",
+        "url": "https://tensorflow.org",
+        "teaches_skills": ["TensorFlow", "Deep Learning", "Machine Learning"]
+    },
+    {
+        "resource_title": "Kaggle Learn",
+        "resource_type": "Platform",
+        "url": "https://kaggle.com/learn",
+        "teaches_skills": ["Machine Learning", "Data Science", "Python", "Pandas"]
+    },
+    {
+        "resource_title": "Papers With Code",
+        "resource_type": "Platform",
+        "url": "https://paperswithcode.com",
+        "teaches_skills": ["Machine Learning", "Deep Learning", "Research"]
+    },
+    {
+        "resource_title": "CS50",
+        "resource_type": "Course",
+        "url": "https://cs50.harvard.edu",
+        "teaches_skills": ["Computer Science", "C", "Python", "Algorithms"]
+    },
+    {
+        "resource_title": "OSSU Computer Science",
+        "resource_type": "GitHub",
+        "url": "https://github.com/ossu/computer-science",
+        "teaches_skills": ["Computer Science", "Algorithms", "Operating Systems"]
+    },
+    {
+        "resource_title": "The Rust Book",
+        "resource_type": "Documentation",
+        "url": "https://doc.rust-lang.org/book",
+        "teaches_skills": ["Rust", "Systems Programming", "Memory Safety"]
+    },
+    {
+        "resource_title": "Go by Example",
+        "resource_type": "Documentation",
+        "url": "https://gobyexample.com",
+        "teaches_skills": ["Go", "Concurrency", "Backend Development"]
+    },
+    {
+        "resource_title": "Linux Journey",
+        "resource_type": "Tutorial",
+        "url": "https://linuxjourney.com",
+        "teaches_skills": ["Linux", "Command Line", "Systems Administration"]
+    },
+    {
+        "resource_title": "Git Documentation",
+        "resource_type": "Documentation",
+        "url": "https://git-scm.com/doc",
+        "teaches_skills": ["Git", "Version Control"]
+    },
+    {
+        "resource_title": "Pro Git Book",
+        "resource_type": "Book",
+        "url": "https://git-scm.com/book",
+        "teaches_skills": ["Git", "Version Control", "Collaboration"]
+    },
+    {
+        "resource_title": "OWASP Top 10",
+        "resource_type": "Documentation",
+        "url": "https://owasp.org/www-project-top-ten",
+        "teaches_skills": ["Security", "OWASP", "Web Security"]
+    },
+    {
+        "resource_title": "PortSwigger Web Security Academy",
+        "resource_type": "Course",
+        "url": "https://portswigger.net/web-security",
+        "teaches_skills": ["Security", "Penetration Testing", "Web Security"]
+    },
+    {
+        "resource_title": "Cryptography I Coursera",
+        "resource_type": "Course",
+        "url": "https://coursera.org/learn/crypto",
+        "teaches_skills": ["Cryptography", "Security", "Mathematics"]
+    },
+    {
+        "resource_title": "Solidity Documentation",
+        "resource_type": "Documentation",
+        "url": "https://docs.soliditylang.org",
+        "teaches_skills": ["Solidity", "Smart Contracts", "Blockchain"]
+    },
+    {
+        "resource_title": "CryptoZombies",
+        "resource_type": "Tutorial",
+        "url": "https://cryptozombies.io",
+        "teaches_skills": ["Solidity", "Smart Contracts", "Web3"]
+    },
+    {
+        "resource_title": "Apache Spark Documentation",
+        "resource_type": "Documentation",
+        "url": "https://spark.apache.org/docs",
+        "teaches_skills": ["Apache Spark", "Big Data", "Data Engineering"]
+    },
+    {
+        "resource_title": "Kafka Documentation",
+        "resource_type": "Documentation",
+        "url": "https://kafka.apache.org/documentation",
+        "teaches_skills": ["Kafka", "Event Streaming", "Distributed Systems"]
+    },
+    {
+        "resource_title": "Pandas Documentation",
+        "resource_type": "Documentation",
+        "url": "https://pandas.pydata.org/docs",
+        "teaches_skills": ["Pandas", "Data Analysis", "Python"]
+    },
+    {
+        "resource_title": "NumPy Documentation",
+        "resource_type": "Documentation",
+        "url": "https://numpy.org/doc",
+        "teaches_skills": ["NumPy", "Scientific Computing", "Python"]
+    },
+    {
+        "resource_title": "Unity Learn",
+        "resource_type": "Platform",
+        "url": "https://learn.unity.com",
+        "teaches_skills": ["Unity", "Game Development", "3D Graphics"]
+    },
+    {
+        "resource_title": "Unreal Engine Documentation",
+        "resource_type": "Documentation",
+        "url": "https://docs.unrealengine.com",
+        "teaches_skills": ["Unreal Engine", "Game Development", "C++"]
+    },
+    {
+        "resource_title": "OpenGL Tutorial",
+        "resource_type": "Tutorial",
+        "url": "https://learnopengl.com",
+        "teaches_skills": ["OpenGL", "3D Graphics", "Computer Graphics"]
+    },
+    {
+        "resource_title": "Swift Documentation",
+        "resource_type": "Documentation",
+        "url": "https://swift.org/documentation",
+        "teaches_skills": ["Swift", "iOS Development"]
+    },
+    {
+        "resource_title": "Kotlin Documentation",
+        "resource_type": "Documentation",
+        "url": "https://kotlinlang.org/docs",
+        "teaches_skills": ["Kotlin", "Android Development"]
+    },
+    {
+        "resource_title": "React Native Documentation",
+        "resource_type": "Documentation",
+        "url": "https://reactnative.dev/docs",
+        "teaches_skills": ["React Native", "Mobile Development", "JavaScript"]
+    },
+    {
+        "resource_title": "Flutter Documentation",
+        "resource_type": "Documentation",
+        "url": "https://flutter.dev/docs",
+        "teaches_skills": ["Flutter", "Mobile Development", "Dart"]
+    },
+    {
+        "resource_title": "Terraform Documentation",
+        "resource_type": "Documentation",
+        "url": "https://terraform.io/docs",
+        "teaches_skills": ["Terraform", "Infrastructure as Code", "DevOps"]
+    },
+    {
+        "resource_title": "Ansible Documentation",
+        "resource_type": "Documentation",
+        "url": "https://docs.ansible.com",
+        "teaches_skills": ["Ansible", "Configuration Management", "Automation"]
+    },
+    {
+        "resource_title": "Spring Boot Documentation",
+        "resource_type": "Documentation",
+        "url": "https://spring.io/projects/spring-boot",
+        "teaches_skills": ["Spring Boot", "Java", "Backend Development"]
+    },
+    {
+        "resource_title": "Django Documentation",
+        "resource_type": "Documentation",
+        "url": "https://docs.djangoproject.com",
+        "teaches_skills": ["Django", "Python", "Web Development"]
+    },
+    {
+        "resource_title": "Flask Documentation",
+        "resource_type": "Documentation",
+        "url": "https://flask.palletsprojects.com",
+        "teaches_skills": ["Flask", "Python", "REST APIs"]
+    },
+    {
+        "resource_title": "Node.js Documentation",
+        "resource_type": "Documentation",
+        "url": "https://nodejs.org/docs",
+        "teaches_skills": ["Node.js", "JavaScript", "Backend Development"]
+    },
+    {
+        "resource_title": "Eloquent JavaScript",
+        "resource_type": "Book",
+        "url": "https://eloquentjavascript.net",
+        "teaches_skills": ["JavaScript", "Programming", "Web Development"]
+    },
+    {
+        "resource_title": "You Don't Know JS",
+        "resource_type": "Book Series",
+        "url": "https://github.com/getify/You-Dont-Know-JS",
+        "teaches_skills": ["JavaScript", "Programming Fundamentals"]
+    }
+]

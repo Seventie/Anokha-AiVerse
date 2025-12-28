@@ -1,0 +1,256 @@
+[{
+        "skill": "System Design",
+        "prerequisites": ["Data Structures", "Algorithms", "Databases", "Networking"],
+        "related_skills": ["Distributed Systems", "Microservices", "Scalability", "Load Balancing"]
+    },
+    {
+        "skill": "Distributed Systems",
+        "prerequisites": ["System Design", "Networking", "Databases"],
+        "related_skills": ["Microservices", "Message Queues", "Scalability", "Caching"]
+    },
+    {
+        "skill": "Microservices",
+        "prerequisites": ["REST APIs", "Databases", "Docker"],
+        "related_skills": ["Kubernetes", "System Design", "Message Queues", "API Design"]
+    },
+    {
+        "skill": "Kubernetes",
+        "prerequisites": ["Docker", "Linux", "Networking"],
+        "related_skills": ["DevOps", "CI/CD", "Monitoring", "Cloud Platforms"]
+    },
+    {
+        "skill": "Machine Learning",
+        "prerequisites": ["Python", "Statistics", "Linear Algebra", "Calculus"],
+        "related_skills": ["Deep Learning", "Data Science", "Feature Engineering", "Model Evaluation"]
+    },
+    {
+        "skill": "Deep Learning",
+        "prerequisites": ["Machine Learning", "Python", "Linear Algebra"],
+        "related_skills": ["Neural Networks", "Computer Vision", "Natural Language Processing", "TensorFlow", "PyTorch"]
+    },
+    {
+        "skill": "Natural Language Processing",
+        "prerequisites": ["Machine Learning", "Python", "Statistics"],
+        "related_skills": ["Deep Learning", "Transformers", "Text Processing", "Language Models"]
+    },
+    {
+        "skill": "Computer Vision",
+        "prerequisites": ["Deep Learning", "Python", "Linear Algebra"],
+        "related_skills": ["Image Processing", "Object Detection", "Neural Networks", "OpenCV"]
+    },
+    {
+        "skill": "React",
+        "prerequisites": ["JavaScript", "HTML", "CSS"],
+        "related_skills": ["TypeScript", "Node.js", "Frontend Development", "State Management"]
+    },
+    {
+        "skill": "TypeScript",
+        "prerequisites": ["JavaScript"],
+        "related_skills": ["React", "Node.js", "Angular", "Type Systems"]
+    },
+    {
+        "skill": "Node.js",
+        "prerequisites": ["JavaScript"],
+        "related_skills": ["Express", "REST APIs", "Backend Development", "npm"]
+    },
+    {
+        "skill": "Docker",
+        "prerequisites": ["Linux"],
+        "related_skills": ["Kubernetes", "CI/CD", "DevOps", "Containerization"]
+    },
+    {
+        "skill": "AWS",
+        "prerequisites": ["Networking", "Linux"],
+        "related_skills": ["Cloud Architecture", "DevOps", "Terraform", "Scalability"]
+    },
+    {
+        "skill": "Terraform",
+        "prerequisites": ["Cloud Platforms", "Infrastructure"],
+        "related_skills": ["AWS", "DevOps", "Infrastructure as Code", "Automation"]
+    },
+    {
+        "skill": "CI/CD",
+        "prerequisites": ["Git", "Linux"],
+        "related_skills": ["DevOps", "Docker", "Testing", "Automation"]
+    },
+    {
+        "skill": "REST APIs",
+        "prerequisites": ["HTTP", "Backend Development"],
+        "related_skills": ["GraphQL", "Microservices", "API Design", "Authentication"]
+    },
+    {
+        "skill": "GraphQL",
+        "prerequisites": ["REST APIs", "Backend Development"],
+        "related_skills": ["API Design", "React", "Schema Design"]
+    },
+    {
+        "skill": "SQL",
+        "prerequisites": ["Databases"],
+        "related_skills": ["PostgreSQL", "MySQL", "Query Optimization", "Database Design"]
+    },
+    {
+        "skill": "PostgreSQL",
+        "prerequisites": ["SQL", "Databases"],
+        "related_skills": ["Database Administration", "Performance Tuning", "Replication"]
+    },
+    {
+        "skill": "MongoDB",
+        "prerequisites": ["Databases", "JSON"],
+        "related_skills": ["NoSQL", "Schema Design", "Indexing"]
+    },
+    {
+        "skill": "Redis",
+        "prerequisites": ["Databases"],
+        "related_skills": ["Caching", "Performance Optimization", "Data Structures"]
+    },
+    {
+        "skill": "Apache Spark",
+        "prerequisites": ["Python", "Distributed Systems"],
+        "related_skills": ["Big Data", "ETL", "Data Engineering", "Scala"]
+    },
+    {
+        "skill": "Kafka",
+        "prerequisites": ["Distributed Systems", "Message Queues"],
+        "related_skills": ["Event Streaming", "Real-time Processing", "Microservices"]
+    },
+    {
+        "skill": "ETL",
+        "prerequisites": ["SQL", "Python"],
+        "related_skills": ["Data Warehousing", "Data Pipelines", "Apache Spark"]
+    },
+    {
+        "skill": "Data Warehousing",
+        "prerequisites": ["SQL", "Databases", "ETL"],
+        "related_skills": ["Business Intelligence", "Data Modeling", "Analytics"]
+    },
+    {
+        "skill": "Pandas",
+        "prerequisites": ["Python", "NumPy"],
+        "related_skills": ["Data Analysis", "Data Manipulation", "Data Science"]
+    },
+    {
+        "skill": "NumPy",
+        "prerequisites": ["Python"],
+        "related_skills": ["Pandas", "Machine Learning", "Scientific Computing"]
+    },
+    {
+        "skill": "TensorFlow",
+        "prerequisites": ["Python", "Machine Learning", "NumPy"],
+        "related_skills": ["Deep Learning", "Neural Networks", "Model Training"]
+    },
+    {
+        "skill": "PyTorch",
+        "prerequisites": ["Python", "Machine Learning", "NumPy"],
+        "related_skills": ["Deep Learning", "Neural Networks", "Research"]
+    },
+    {
+        "skill": "Scikit-learn",
+        "prerequisites": ["Python", "NumPy", "Statistics"],
+        "related_skills": ["Machine Learning", "Data Science", "Model Evaluation"]
+    },
+    {
+        "skill": "Linux",
+        "prerequisites": ["Command Line"],
+        "related_skills": ["DevOps", "Systems Administration", "Networking", "Shell Scripting"]
+    },
+    {
+        "skill": "Networking",
+        "prerequisites": ["Computer Science Fundamentals"],
+        "related_skills": ["System Design", "Security", "Protocols", "Cloud Computing"]
+    },
+    {
+        "skill": "Security",
+        "prerequisites": ["Networking", "Operating Systems"],
+        "related_skills": ["Cryptography", "Penetration Testing", "OWASP", "Cloud Security"]
+    },
+    {
+        "skill": "Cryptography",
+        "prerequisites": ["Mathematics", "Security"],
+        "related_skills": ["Blockchain", "Encryption", "Digital Signatures"]
+    },
+    {
+        "skill": "Blockchain",
+        "prerequisites": ["Cryptography", "Distributed Systems"],
+        "related_skills": ["Web3", "Smart Contracts", "Consensus Algorithms"]
+    },
+    {
+        "skill": "Solidity",
+        "prerequisites": ["Programming Fundamentals", "Blockchain"],
+        "related_skills": ["Smart Contracts", "Ethereum", "Web3"]
+    },
+    {
+        "skill": "Embedded Systems",
+        "prerequisites": ["C", "Computer Architecture"],
+        "related_skills": ["RTOS", "Microcontrollers", "IoT", "Hardware Interfaces"]
+    },
+    {
+        "skill": "RTOS",
+        "prerequisites": ["Embedded Systems", "Operating Systems"],
+        "related_skills": ["Real-time Programming", "Scheduling", "Concurrency"]
+    },
+    {
+        "skill": "IoT",
+        "prerequisites": ["Embedded Systems", "Networking"],
+        "related_skills": ["Sensors", "Cloud Integration", "Edge Computing"]
+    },
+    {
+        "skill": "React Native",
+        "prerequisites": ["React", "JavaScript"],
+        "related_skills": ["Mobile Development", "Cross-platform", "Native APIs"]
+    },
+    {
+        "skill": "Flutter",
+        "prerequisites": ["Dart", "Mobile Development"],
+        "related_skills": ["Cross-platform", "UI Development", "State Management"]
+    },
+    {
+        "skill": "Swift",
+        "prerequisites": ["Programming Fundamentals"],
+        "related_skills": ["iOS Development", "Mobile Apps", "Xcode"]
+    },
+    {
+        "skill": "Kotlin",
+        "prerequisites": ["Java", "Programming Fundamentals"],
+        "related_skills": ["Android Development", "Mobile Apps", "JVM"]
+    },
+    {
+        "skill": "Unity",
+        "prerequisites": ["C#", "3D Graphics"],
+        "related_skills": ["Game Development", "Physics", "Animation"]
+    },
+    {
+        "skill": "3D Graphics",
+        "prerequisites": ["Mathematics", "Linear Algebra"],
+        "related_skills": ["OpenGL", "Rendering", "Shaders", "Computer Graphics"]
+    },
+    {
+        "skill": "Testing",
+        "prerequisites": ["Programming"],
+        "related_skills": ["Quality Assurance", "Test Automation", "CI/CD", "Debugging"]
+    },
+    {
+        "skill": "Algorithms",
+        "prerequisites": ["Data Structures", "Mathematics"],
+        "related_skills": ["Problem Solving", "Competitive Programming", "Optimization"]
+    },
+    {
+        "skill": "Object Oriented Programming",
+        "prerequisites": ["Programming Fundamentals"],
+        "related_skills": ["Design Patterns", "Software Architecture", "SOLID Principles"]
+    },
+    {
+        "skill": "Functional Programming",
+        "prerequisites": ["Programming Fundamentals"],
+        "related_skills": ["Lambda Calculus", "Immutability", "Higher-order Functions"]
+    },
+    {
+        "skill": "Concurrency",
+        "prerequisites": ["Operating Systems", "Programming"],
+        "related_skills": ["Multi-threading", "Parallel Programming", "Race Conditions"]
+    },
+    {
+        "skill": "Performance Optimization",
+        "prerequisites": ["Algorithms", "Data Structures"],
+        "related_skills": ["Profiling", "Caching", "Benchmarking", "Code Optimization"]
+    }
+]

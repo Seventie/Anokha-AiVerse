@@ -1,19 +1,25 @@
-# backend/app/routes/auth.py
+# backend/app/routes/auth.py - FIXED VERSION
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.config.database import get_db
-from app.models.database import User, Education, Skill, Project, Experience, Availability, CareerGoal, CareerIntent, PreferredLocation
-from app.schemas.user import UserRegister, UserLogin, Token, UserResponse
-from app.utils.auth import verify_password, get_password_hash, create_access_token
-from app.services.vector_db import vector_db
+from app.models.database import User, Education, Skill, Project, Experience, Availability, CareerGoal, CareerIntent, PreferredLocation, SkillCategory, SkillLevel
+from app.schemas.user import UserRegister, UserLogin, Token, UserResponse, UserRegisterResponse, EducationResponse, SkillResponse, ProjectResponse, ExperienceResponse, AvailabilityResponse
+from app.utils.auth import verify_password, get_password_hash, create_access_token, decode_access_token
+from app.services.vector_db import get_vector_db
+from app.services.graph_db import get_graph_db
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+security = HTTPBearer()
 
-@router.post("/register", response_model=UserResponse)
+@router.post("/register", response_model=UserRegisterResponse)
 async def register(user_data: UserRegister, db: Session = Depends(get_db)):
-    """Register a new user and populate both SQL and Vector DB"""
+    """Register a new user - FIXED VERSION"""
     
     # Check if user exists
     existing_user = db.query(User).filter(
@@ -49,62 +55,85 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
             major=edu.major,
             location=edu.location,
             duration=edu.duration,
+            start_date=getattr(edu, 'start_date', None),
+            end_date=getattr(edu, 'end_date', None),
+            grade=getattr(edu, 'grade', None),
             is_confirmed=True
         )
         db.add(db_edu)
     
-    # Add Skills
+    # Add Skills to SQL and Graph
     for skill_name in user_data.skills.get("technical", []):
         db_skill = Skill(
             user_id=user_id,
             skill=skill_name,
-            category="technical",
+            category=SkillCategory.TECHNICAL,
+            level=SkillLevel.INTERMEDIATE,
             is_confirmed=True
         )
         db.add(db_skill)
+        # Add to knowledge graph (optional, fail gracefully)
+        try:
+            get_graph_db().add_user_skill(user_id, skill_name, level="intermediate")
+        except Exception as e:
+            logger.warning(f"Failed to add skill to graph: {e}")
     
     for skill_name in user_data.skills.get("soft", []):
         db_skill = Skill(
             user_id=user_id,
             skill=skill_name,
-            category="soft",
+            category=SkillCategory.SOFT,
+            level=SkillLevel.INTERMEDIATE,
             is_confirmed=True
         )
         db.add(db_skill)
     
     # Add Projects
     for proj in user_data.projects:
+        if not proj.title:  # Skip empty projects
+            continue
         db_proj = Project(
             user_id=user_id,
             title=proj.title,
-            description=proj.description,
-            tech_stack=proj.techStack,
+            description=proj.description or "",
+            tech_stack=proj.techStack or "",
+            link=getattr(proj, 'link', None),
             is_confirmed=True
         )
         db.add(db_proj)
         db.flush()
         
-        # Add project description to Vector DB
+        # Add project description to Vector DB (optional, fail gracefully)
         if proj.description:
-            vector_db.add_project_context(user_id, db_proj.id, proj.description)
+            try:
+                get_vector_db().add_project_context(user_id, db_proj.id, proj.description)
+            except Exception as e:
+                logger.warning(f"Failed to add project to vector DB: {e}")
     
     # Add Experience
     for exp in user_data.experience:
+        if not exp.role or not exp.company:  # Skip empty experiences
+            continue
         db_exp = Experience(
             user_id=user_id,
             role=exp.role,
             company=exp.company,
-            location=exp.location,
-            duration=exp.duration,
-            description=exp.description,
+            location=exp.location or "",
+            duration=exp.duration or "",
+            description=exp.description or "",
+            start_date=getattr(exp, 'start_date', None),
+            end_date=getattr(exp, 'end_date', None),
             is_confirmed=True
         )
         db.add(db_exp)
         db.flush()
         
-        # Add experience description to Vector DB
+        # Add experience description to Vector DB (optional, fail gracefully)
         if exp.description:
-            vector_db.add_experience_context(user_id, db_exp.id, exp.description)
+            try:
+                get_vector_db().add_experience_context(user_id, db_exp.id, exp.description)
+            except Exception as e:
+                logger.warning(f"Failed to add experience to vector DB: {e}")
     
     # Add Preferred Locations
     for idx, loc in enumerate(user_data.preferredLocations):
@@ -116,20 +145,43 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
         db.add(db_loc)
     
     # Add Availability
-    db_avail = Availability(
-        user_id=user_id,
-        free_time=user_data.availability.freeTime,
-        study_days=user_data.availability.studyDays
-    )
-    db.add(db_avail)
+    if user_data.availability:
+        db_avail = Availability(
+            user_id=user_id,
+            free_time=user_data.availability.freeTime or "2-4 hours",
+            study_days=user_data.availability.studyDays or []
+        )
+        db.add(db_avail)
+    else:
+        # Default availability
+        db_avail = Availability(
+            user_id=user_id,
+            free_time="2-4 hours",
+            study_days=[]
+        )
+        db.add(db_avail)
     
     # Add Career Goals
     db_goal = CareerGoal(
         user_id=user_id,
-        target_roles=[user_data.targetRole],
-        target_timeline=user_data.timeline
+        target_roles=[user_data.targetRole] if user_data.targetRole else ["Software Engineer"],
+        target_timeline=user_data.timeline or "6 Months"
     )
     db.add(db_goal)
+    
+    # Add to knowledge graph (optional, fail gracefully)
+    try:
+        graph = get_graph_db()
+        if graph.driver:  # Only if graph DB is available
+            graph.create_user_node(user_id, {
+                "name": user_data.fullName,
+                "email": user_data.email,
+                "target_role": user_data.targetRole or "Software Engineer"
+            })
+            if user_data.targetRole:
+                graph.create_target_role(user_id, user_data.targetRole)
+    except Exception as e:
+        logger.warning(f"Failed to add user to graph DB: {e}")
     
     # Add Career Intent (HIGH PRIORITY for Vector DB)
     if user_data.visionStatement:
@@ -140,23 +192,43 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
         )
         db.add(db_intent)
         
-        # Add to Vector DB with high priority
-        vector_db.add_career_intent(user_id, user_data.visionStatement)
+        # Add to Vector DB with high priority (optional, fail gracefully)
+        try:
+            get_vector_db().add_career_intent(user_id, user_data.visionStatement)
+        except Exception as e:
+            logger.warning(f"Failed to add career intent to vector DB: {e}")
     
     db.commit()
     db.refresh(db_user)
     
-    # Return user data
-    return await get_user_profile(user_id, db)
+    # Create access token
+    access_token = create_access_token(data={"sub": user_id, "email": user_data.email})
+    
+    # Get user profile
+    user_profile = await get_user_profile(user_id, db)
+    
+    # Return user data with token
+    return UserRegisterResponse(
+        user=user_profile,
+        access_token=access_token,
+        token_type="bearer"
+    )
 
 @router.post("/login", response_model=Token)
 async def login(credentials: UserLogin, db: Session = Depends(get_db)):
-    """Login and return JWT token"""
+    """Login and return JWT token - FIXED VERSION"""
     
     # Find user by email
     user = db.query(User).filter(User.email == credentials.email).first()
     
-    if not user or not verify_password(credentials.password, user.hashed_password):
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials"
+        )
+    
+    # Verify password
+    if not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
@@ -168,11 +240,13 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user(token: str, db: Session = Depends(get_db)):
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
     """Get current user profile"""
-    from app.utils.auth import decode_access_token
     
-    payload = decode_access_token(token)
+    payload = decode_access_token(credentials.credentials)
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -182,7 +256,7 @@ async def get_current_user(token: str, db: Session = Depends(get_db)):
     user_id = payload.get("sub")
     return await get_user_profile(user_id, db)
 
-async def get_user_profile(user_id: str, db: Session):
+async def get_user_profile(user_id: str, db: Session) -> UserResponse:
     """Helper to get complete user profile"""
     user = db.query(User).filter(User.id == user_id).first()
     
@@ -192,30 +266,85 @@ async def get_user_profile(user_id: str, db: Session):
             detail="User not found"
         )
     
-    # Get preferred locations
+    # Get all related data
+    education = db.query(Education).filter(Education.user_id == user_id).all()
+    skills = db.query(Skill).filter(Skill.user_id == user_id).all()
+    projects = db.query(Project).filter(Project.user_id == user_id).all()
+    experience = db.query(Experience).filter(Experience.user_id == user_id).all()
+    availability = db.query(Availability).filter(Availability.user_id == user_id).first()
+    career_goals = db.query(CareerGoal).filter(CareerGoal.user_id == user_id).first()
+    career_intent = db.query(CareerIntent).filter(CareerIntent.user_id == user_id).first()
     preferred_locs = db.query(PreferredLocation).filter(
         PreferredLocation.user_id == user_id
     ).order_by(PreferredLocation.priority).all()
     
-    # Build response
+    # Build response with safe defaults
+    email_username = user.email.split('@')[0] if user.email and '@' in user.email else "user"
     return UserResponse(
         id=user.id,
         email=user.email,
-        username=user.username,
-        fullName=user.full_name,
-        location=user.location,
-        preferredLocations=[loc.location for loc in preferred_locs],
+        username=user.username or email_username,
+        fullName=user.full_name or email_username.title(),
+        location=user.location or "",
+        preferredLocations=[loc.location for loc in preferred_locs] if preferred_locs else [],
         currentStatus=user.readiness_level.value if user.readiness_level else "beginner",
-        fieldOfInterest="Software Engineering",  # TODO: Store this
-        targetRole=user.career_goals.target_roles[0] if user.career_goals and user.career_goals.target_roles else "",
-        timeline=user.career_goals.target_timeline if user.career_goals else "",
-        visionStatement=user.career_intent.intent_text if user.career_intent else "",
+        fieldOfInterest="Software Engineering",
+        targetRole=career_goals.target_roles[0] if career_goals and career_goals.target_roles and len(career_goals.target_roles) > 0 else "Software Engineer",
+        timeline=career_goals.target_timeline if career_goals and career_goals.target_timeline else "6 Months",
+        visionStatement=career_intent.intent_text if career_intent and career_intent.intent_text else "",
         readiness_level=user.readiness_level.value if user.readiness_level else "beginner",
-        is_demo=user.is_demo,
+        is_demo=user.is_demo if user.is_demo is not None else False,
         created_at=user.created_at,
-        education=[],  # TODO: Map from relationships
-        skills=[],
-        projects=[],
-        experience=[],
-        availability=None
+        education=[
+            EducationResponse(
+                id=e.id,
+                institution=e.institution,
+                degree=e.degree,
+                major=e.major,
+                location=e.location,
+                duration=e.duration,
+                start_date=e.start_date,
+                end_date=e.end_date,
+                grade=e.grade,
+                is_confirmed=e.is_confirmed
+            ) for e in education
+        ] if education else [],
+        skills=[
+            SkillResponse(
+                id=s.id,
+                skill=s.skill,
+                category=s.category.value if s.category else "technical",
+                level=s.level.value if s.level else "intermediate",
+                verified=s.verified,
+                is_confirmed=s.is_confirmed
+            ) for s in skills
+        ] if skills else [],
+        projects=[
+            ProjectResponse(
+                id=p.id,
+                title=p.title,
+                description=p.description or "",
+                techStack=p.tech_stack or "",
+                link=p.link,
+                is_confirmed=p.is_confirmed
+            ) for p in projects
+        ] if projects else [],
+        experience=[
+            ExperienceResponse(
+                id=e.id,
+                role=e.role,
+                company=e.company,
+                location=e.location,
+                duration=e.duration,
+                description=e.description or "",
+                start_date=e.start_date,
+                end_date=e.end_date,
+                is_confirmed=e.is_confirmed
+            ) for e in experience
+        ] if experience else [],
+        availability=AvailabilityResponse(
+            id=availability.id,
+            freeTime=availability.free_time or "",
+            studyDays=availability.study_days or []
+        ) if availability else None
     )

@@ -1,0 +1,526 @@
+[{
+        "name": "Data Structures",
+        "category": "Theory",
+        "description": "Understanding of arrays, linked lists, trees, graphs, hash tables, and heaps"
+    },
+    {
+        "name": "Algorithms",
+        "category": "Theory",
+        "description": "Sorting, searching, dynamic programming, greedy algorithms, and graph algorithms"
+    },
+    {
+        "name": "System Design",
+        "category": "Theory",
+        "description": "Designing scalable, distributed systems with proper architecture patterns"
+    },
+    {
+        "name": "Object Oriented Programming",
+        "category": "Programming",
+        "description": "Design principles using classes, inheritance, polymorphism, and encapsulation"
+    },
+    {
+        "name": "Databases",
+        "category": "Systems",
+        "description": "Relational and NoSQL database design, queries, and optimization"
+    },
+    {
+        "name": "SQL",
+        "category": "Programming",
+        "description": "Writing complex queries, joins, aggregations, and database operations"
+    },
+    {
+        "name": "REST APIs",
+        "category": "Programming",
+        "description": "Designing and implementing RESTful web services"
+    },
+    {
+        "name": "Python",
+        "category": "Programming",
+        "description": "General-purpose programming language for backend, data, and ML"
+    },
+    {
+        "name": "JavaScript",
+        "category": "Programming",
+        "description": "Programming language for web development and Node.js"
+    },
+    {
+        "name": "TypeScript",
+        "category": "Programming",
+        "description": "Typed superset of JavaScript for large-scale applications"
+    },
+    {
+        "name": "Java",
+        "category": "Programming",
+        "description": "Enterprise programming language for backend and Android development"
+    },
+    {
+        "name": "C++",
+        "category": "Programming",
+        "description": "Systems programming language for performance-critical applications"
+    },
+    {
+        "name": "Go",
+        "category": "Programming",
+        "description": "Modern language for concurrent systems and cloud infrastructure"
+    },
+    {
+        "name": "Rust",
+        "category": "Programming",
+        "description": "Memory-safe systems programming language"
+    },
+    {
+        "name": "React",
+        "category": "Tools",
+        "description": "Frontend library for building user interfaces"
+    },
+    {
+        "name": "Angular",
+        "category": "Tools",
+        "description": "Frontend framework for building web applications"
+    },
+    {
+        "name": "Vue.js",
+        "category": "Tools",
+        "description": "Progressive frontend framework for building UIs"
+    },
+    {
+        "name": "Node.js",
+        "category": "Tools",
+        "description": "JavaScript runtime for server-side development"
+    },
+    {
+        "name": "Django",
+        "category": "Tools",
+        "description": "High-level Python web framework"
+    },
+    {
+        "name": "Flask",
+        "category": "Tools",
+        "description": "Lightweight Python web framework"
+    },
+    {
+        "name": "FastAPI",
+        "category": "Tools",
+        "description": "Modern Python framework for building APIs"
+    },
+    {
+        "name": "Spring Boot",
+        "category": "Tools",
+        "description": "Java framework for building production-ready applications"
+    },
+    {
+        "name": "Docker",
+        "category": "DevOps",
+        "description": "Containerization platform for application deployment"
+    },
+    {
+        "name": "Kubernetes",
+        "category": "DevOps",
+        "description": "Container orchestration platform for managing deployments"
+    },
+    {
+        "name": "AWS",
+        "category": "DevOps",
+        "description": "Amazon Web Services cloud computing platform"
+    },
+    {
+        "name": "Azure",
+        "category": "DevOps",
+        "description": "Microsoft cloud computing platform"
+    },
+    {
+        "name": "GCP",
+        "category": "DevOps",
+        "description": "Google Cloud Platform services"
+    },
+    {
+        "name": "CI/CD",
+        "category": "DevOps",
+        "description": "Continuous integration and deployment pipelines"
+    },
+    {
+        "name": "Git",
+        "category": "Tools",
+        "description": "Version control system for source code management"
+    },
+    {
+        "name": "Linux",
+        "category": "Systems",
+        "description": "Unix-based operating system administration and usage"
+    },
+    {
+        "name": "Networking",
+        "category": "Systems",
+        "description": "TCP/IP, HTTP, DNS, and network protocols"
+    },
+    {
+        "name": "Security",
+        "category": "Security",
+        "description": "Application security, encryption, and secure coding practices"
+    },
+    {
+        "name": "Machine Learning",
+        "category": "ML",
+        "description": "Supervised and unsupervised learning algorithms"
+    },
+    {
+        "name": "Deep Learning",
+        "category": "ML",
+        "description": "Neural networks and deep learning architectures"
+    },
+    {
+        "name": "Natural Language Processing",
+        "category": "ML",
+        "description": "Text processing, language models, and NLP techniques"
+    },
+    {
+        "name": "Computer Vision",
+        "category": "ML",
+        "description": "Image processing, object detection, and visual recognition"
+    },
+    {
+        "name": "TensorFlow",
+        "category": "ML",
+        "description": "Open-source machine learning framework"
+    },
+    {
+        "name": "PyTorch",
+        "category": "ML",
+        "description": "Deep learning framework for research and production"
+    },
+    {
+        "name": "Scikit-learn",
+        "category": "ML",
+        "description": "Machine learning library for Python"
+    },
+    {
+        "name": "Pandas",
+        "category": "Data",
+        "description": "Data manipulation and analysis library for Python"
+    },
+    {
+        "name": "NumPy",
+        "category": "Data",
+        "description": "Numerical computing library for Python"
+    },
+    {
+        "name": "Statistics",
+        "category": "Theory",
+        "description": "Statistical methods, hypothesis testing, and probability theory"
+    },
+    {
+        "name": "Data Visualization",
+        "category": "Data",
+        "description": "Creating charts, graphs, and visual data representations"
+    },
+    {
+        "name": "ETL",
+        "category": "Data",
+        "description": "Extract, transform, load processes for data pipelines"
+    },
+    {
+        "name": "Data Warehousing",
+        "category": "Data",
+        "description": "Designing and managing data warehouse systems"
+    },
+    {
+        "name": "Apache Spark",
+        "category": "Data",
+        "description": "Distributed data processing framework"
+    },
+    {
+        "name": "Kafka",
+        "category": "Data",
+        "description": "Distributed streaming platform for real-time data"
+    },
+    {
+        "name": "Redis",
+        "category": "Systems",
+        "description": "In-memory data structure store for caching"
+    },
+    {
+        "name": "MongoDB",
+        "category": "Systems",
+        "description": "NoSQL document database"
+    },
+    {
+        "name": "PostgreSQL",
+        "category": "Systems",
+        "description": "Advanced open-source relational database"
+    },
+    {
+        "name": "MySQL",
+        "category": "Systems",
+        "description": "Popular open-source relational database"
+    },
+    {
+        "name": "GraphQL",
+        "category": "Programming",
+        "description": "Query language for APIs"
+    },
+    {
+        "name": "Microservices",
+        "category": "Theory",
+        "description": "Architecture pattern for distributed systems"
+    },
+    {
+        "name": "Message Queues",
+        "category": "Systems",
+        "description": "Asynchronous communication between services"
+    },
+    {
+        "name": "Caching",
+        "category": "Systems",
+        "description": "Performance optimization through data caching strategies"
+    },
+    {
+        "name": "Load Balancing",
+        "category": "Systems",
+        "description": "Distributing traffic across multiple servers"
+    },
+    {
+        "name": "Distributed Systems",
+        "category": "Theory",
+        "description": "Building systems across multiple networked computers"
+    },
+    {
+        "name": "Scalability",
+        "category": "Theory",
+        "description": "Designing systems to handle growing load"
+    },
+    {
+        "name": "Testing",
+        "category": "Programming",
+        "description": "Unit testing, integration testing, and test automation"
+    },
+    {
+        "name": "Agile",
+        "category": "Soft",
+        "description": "Agile methodologies and sprint-based development"
+    },
+    {
+        "name": "Communication",
+        "category": "Soft",
+        "description": "Written and verbal communication skills"
+    },
+    {
+        "name": "Problem Solving",
+        "category": "Soft",
+        "description": "Analytical thinking and solution design"
+    },
+    {
+        "name": "Collaboration",
+        "category": "Soft",
+        "description": "Working effectively in team environments"
+    },
+    {
+        "name": "Leadership",
+        "category": "Soft",
+        "description": "Leading teams and driving initiatives"
+    },
+    {
+        "name": "Product Management",
+        "category": "Soft",
+        "description": "Product strategy, roadmapping, and stakeholder management"
+    },
+    {
+        "name": "HTML",
+        "category": "Programming",
+        "description": "Markup language for web pages"
+    },
+    {
+        "name": "CSS",
+        "category": "Programming",
+        "description": "Styling and layout for web applications"
+    },
+    {
+        "name": "Responsive Design",
+        "category": "Programming",
+        "description": "Building interfaces that adapt to different screen sizes"
+    },
+    {
+        "name": "UI/UX Design",
+        "category": "Soft",
+        "description": "User interface and experience design principles"
+    },
+    {
+        "name": "Terraform",
+        "category": "DevOps",
+        "description": "Infrastructure as code tool"
+    },
+    {
+        "name": "Ansible",
+        "category": "DevOps",
+        "description": "Configuration management and automation"
+    },
+    {
+        "name": "Monitoring",
+        "category": "DevOps",
+        "description": "System observability and performance tracking"
+    },
+    {
+        "name": "Logging",
+        "category": "DevOps",
+        "description": "Application and system log management"
+    },
+    {
+        "name": "Cryptography",
+        "category": "Security",
+        "description": "Encryption algorithms and secure communication"
+    },
+    {
+        "name": "Penetration Testing",
+        "category": "Security",
+        "description": "Ethical hacking and vulnerability assessment"
+    },
+    {
+        "name": "Cloud Security",
+        "category": "Security",
+        "description": "Securing cloud infrastructure and applications"
+    },
+    {
+        "name": "OWASP",
+        "category": "Security",
+        "description": "Web application security best practices"
+    },
+    {
+        "name": "Solidity",
+        "category": "Programming",
+        "description": "Programming language for smart contracts"
+    },
+    {
+        "name": "Blockchain",
+        "category": "Theory",
+        "description": "Distributed ledger technology and consensus mechanisms"
+    },
+    {
+        "name": "Web3",
+        "category": "Programming",
+        "description": "Decentralized web technologies"
+    },
+    {
+        "name": "React Native",
+        "category": "Tools",
+        "description": "Framework for building cross-platform mobile apps"
+    },
+    {
+        "name": "Flutter",
+        "category": "Tools",
+        "description": "UI toolkit for building native mobile applications"
+    },
+    {
+        "name": "Swift",
+        "category": "Programming",
+        "description": "Programming language for iOS development"
+    },
+    {
+        "name": "Kotlin",
+        "category": "Programming",
+        "description": "Modern programming language for Android"
+    },
+    {
+        "name": "Unity",
+        "category": "Tools",
+        "description": "Game development engine"
+    },
+    {
+        "name": "Unreal Engine",
+        "category": "Tools",
+        "description": "Advanced game development engine"
+    },
+    {
+        "name": "3D Graphics",
+        "category": "Programming",
+        "description": "3D modeling, rendering, and graphics programming"
+    },
+    {
+        "name": "OpenGL",
+        "category": "Programming",
+        "description": "Cross-platform graphics API"
+    },
+    {
+        "name": "C",
+        "category": "Programming",
+        "description": "Low-level systems programming language"
+    },
+    {
+        "name": "Assembly",
+        "category": "Programming",
+        "description": "Low-level processor instruction programming"
+    },
+    {
+        "name": "Embedded Systems",
+        "category": "Systems",
+        "description": "Programming microcontrollers and embedded devices"
+    },
+    {
+        "name": "RTOS",
+        "category": "Systems",
+        "description": "Real-time operating systems"
+    },
+    {
+        "name": "IoT",
+        "category": "Systems",
+        "description": "Internet of Things protocols and architecture"
+    },
+    {
+        "name": "Computer Architecture",
+        "category": "Theory",
+        "description": "Hardware organization and processor design"
+    },
+    {
+        "name": "Operating Systems",
+        "category": "Theory",
+        "description": "OS concepts, processes, memory management, scheduling"
+    },
+    {
+        "name": "Compilers",
+        "category": "Theory",
+        "description": "Compiler design and implementation"
+    },
+    {
+        "name": "Functional Programming",
+        "category": "Programming",
+        "description": "Programming paradigm using pure functions"
+    },
+    {
+        "name": "Concurrency",
+        "category": "Programming",
+        "description": "Multi-threading and parallel programming"
+    },
+    {
+        "name": "API Design",
+        "category": "Programming",
+        "description": "Designing robust and scalable APIs"
+    },
+    {
+        "name": "Performance Optimization",
+        "category": "Programming",
+        "description": "Code and system performance tuning"
+    },
+    {
+        "name": "Debugging",
+        "category": "Programming",
+        "description": "Finding and fixing software bugs"
+    },
+    {
+        "name": "Code Review",
+        "category": "Soft",
+        "description": "Reviewing code quality and providing feedback"
+    },
+    {
+        "name": "Technical Documentation",
+        "category": "Soft",
+        "description": "Writing clear technical documentation"
+    },
+    {
+        "name": "Time Management",
+        "category": "Soft",
+        "description": "Prioritizing tasks and managing deadlines"
+    },
+    {
+        "name": "Mentoring",
+        "category": "Soft",
+        "description": "Guiding and developing junior engineers"
+    }
+]

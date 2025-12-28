@@ -12,26 +12,44 @@ logger = logging.getLogger(__name__)
 class VectorDBService:
     def __init__(self):
         """Initialize ChromaDB and embedding model"""
-        self.client = chromadb.Client(
-            ChromaSettings(
-                persist_directory=settings.CHROMA_PERSIST_DIRECTORY,
-                anonymized_telemetry=False
+        self.client = None
+        self.embedding_model = None
+        self.collection = None
+        self._initialized = False
+    
+    def _ensure_initialized(self):
+        """Lazy initialization of vector DB"""
+        if self._initialized:
+            return
+        
+        try:
+            self.client = chromadb.Client(
+                ChromaSettings(
+                    persist_directory=settings.CHROMA_PERSIST_DIRECTORY,
+                    anonymized_telemetry=False
+                )
             )
-        )
-        
-        # Load embedding model from Hugging Face
-        self.embedding_model = SentenceTransformer(settings.HUGGINGFACE_MODEL)
-        
-        # Get or create collection
-        self.collection = self.client.get_or_create_collection(
-            name=settings.CHROMA_COLLECTION_NAME,
-            metadata={"description": "Career memory context store"}
-        )
-        
-        logger.info(f"Initialized VectorDB with collection: {settings.CHROMA_COLLECTION_NAME}")
+            
+            # Load embedding model from Hugging Face
+            self.embedding_model = SentenceTransformer(settings.HUGGINGFACE_MODEL)
+            
+            # Get or create collection
+            self.collection = self.client.get_or_create_collection(
+                name=settings.CHROMA_COLLECTION_NAME,
+                metadata={"description": "Career memory context store"}
+            )
+            
+            self._initialized = True
+            logger.info(f"Initialized VectorDB with collection: {settings.CHROMA_COLLECTION_NAME}")
+        except Exception as e:
+            logger.warning(f"VectorDB initialization failed: {e}. Vector features will be disabled.")
+            self._initialized = False
     
     def generate_embedding(self, text: str) -> List[float]:
         """Generate embedding for text using Hugging Face model"""
+        self._ensure_initialized()
+        if not self.embedding_model:
+            raise RuntimeError("VectorDB not initialized")
         embedding = self.embedding_model.encode(text, convert_to_numpy=True)
         return embedding.tolist()
     
@@ -65,6 +83,9 @@ class VectorDBService:
         embedding = self.generate_embedding(text)
         
         # Add to collection
+        self._ensure_initialized()
+        if not self.collection:
+            raise RuntimeError("VectorDB not initialized")
         self.collection.add(
             ids=[doc_id],
             embeddings=[embedding],
@@ -179,6 +200,9 @@ class VectorDBService:
             where_filter.update(filter_metadata)
         
         # Search
+        self._ensure_initialized()
+        if not self.collection:
+            raise RuntimeError("VectorDB not initialized")
         results = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=n_results,
@@ -216,6 +240,10 @@ class VectorDBService:
     
     def delete_user_contexts(self, user_id: str):
         """Delete all contexts for a user"""
+        self._ensure_initialized()
+        if not self.collection:
+            logger.warning("VectorDB not initialized, skipping delete")
+            return
         # ChromaDB delete by metadata filter
         results = self.collection.get(where={"user_id": user_id})
         if results and results["ids"]:
@@ -224,6 +252,9 @@ class VectorDBService:
     
     def update_context(self, doc_id: str, text: str, metadata: Dict[str, Any]):
         """Update existing context"""
+        self._ensure_initialized()
+        if not self.collection:
+            raise RuntimeError("VectorDB not initialized")
         embedding = self.generate_embedding(text)
         self.collection.update(
             ids=[doc_id],
@@ -233,5 +264,18 @@ class VectorDBService:
         )
         logger.info(f"Updated context: {doc_id}")
 
-# Singleton instance
-vector_db = VectorDBService()
+# =========================
+# LAZY SINGLETON (SAFE)
+# =========================
+_vector_db: Optional[VectorDBService] = None
+
+
+def get_vector_db() -> VectorDBService:
+    """Lazy-load vector database instance"""
+    global _vector_db
+    if _vector_db is None:
+        _vector_db = VectorDBService()
+    return _vector_db
+
+# Export both function and instance for compatibility
+vector_db = get_vector_db()

@@ -31,3 +31,156 @@ python-dotenv==1.0.1
 pydantic==2.5.3
 pydantic-settings==2.1.0
 httpx==0.26.0
+
+# backend/requirements.txt - COMPLETE WITH LANGGRAPH
+
+# Core Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+websockets==12.0
+
+# Database
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.25
+alembic==1.13.1
+
+# Vector Database
+chromadb==0.4.22
+
+# Graph Database
+neo4j==5.16.0
+
+# LangChain & LangGraph - CORE AGENTIC FRAMEWORK
+langchain==0.1.0
+langchain-community==0.0.13
+langchain-core==0.1.10
+langgraph==0.0.26
+langchain-groq==0.0.1
+
+# AI/ML - FREE APIS
+groq==0.4.1
+
+# Document Processing
+PyPDF2==3.0.1
+python-docx==1.1.0
+pypdf==3.17.4
+pdfplumber==0.10.3
+
+# Security & Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.1
+
+# Utilities
+pydantic==2.5.3
+pydantic-settings==2.1.0
+httpx==0.26.0
+aiohttp==3.9.1
+
+# Task Scheduling
+apscheduler==3.10.4
+celery==5.3.4
+
+# Web Scraping
+beautifulsoup4==4.12.2
+selenium==4.16.0
+requests==2.31.0
+playwright==1.40.0
+
+# Calendar Integration
+google-api-python-client==2.111.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.0
+
+# Voice & Speech
+SpeechRecognition==3.10.1
+pydub==0.25.1
+
+# Embeddings
+sentence-transformers==2.3.1
+
+# Redis
+redis==5.0.1
+
+# Utilities
+python-dateutil==2.8.2
+pytz==2023.3
+
+
+
+
+# backend/requirements.txt - COMPLETE WITH LANGGRAPH
+
+# Core Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+websockets==12.0
+
+# Database
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.25
+alembic==1.13.1
+
+# Vector Database
+chromadb==0.4.22
+
+# Graph Database
+neo4j==5.16.0
+
+# LangChain & LangGraph - CORE AGENTIC FRAMEWORK
+langchain==0.1.0
+langchain-community==0.0.13
+langchain-core==0.1.10
+langgraph==0.0.26
+langchain-groq==0.0.1
+
+# AI/ML - FREE APIS
+groq==0.4.1
+
+# Document Processing
+PyPDF2==3.0.1
+python-docx==1.1.0
+pypdf==3.17.4
+pdfplumber==0.10.3
+
+# Security & Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.1
+
+# Utilities
+pydantic==2.5.3
+pydantic-settings==2.1.0
+httpx==0.26.0
+aiohttp==3.9.1
+
+# Task Scheduling
+apscheduler==3.10.4
+celery==5.3.4
+
+# Web Scraping
+beautifulsoup4==4.12.2
+selenium==4.16.0
+requests==2.31.0
+playwright==1.40.0
+
+# Calendar Integration
+google-api-python-client==2.111.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.0
+
+# Voice & Speech
+SpeechRecognition==3.10.1
+pydub==0.25.1
+
+# Embeddings
+sentence-transformers==2.3.1
+
+# Redis
+redis==5.0.1
+
+# Utilities
+python-dateutil==2.8.2
+pytz==2023.3

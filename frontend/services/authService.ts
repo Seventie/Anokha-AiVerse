@@ -26,23 +26,23 @@ export interface ProjectEntry {
 
 export interface User {
   id: string;
-  fullName: string;
+  fullName?: string;
   email: string;
-  username: string;
+  username?: string;
   password?: string;
-  location: string;
-  preferredLocations: string[];
-  currentStatus: string;
-  fieldOfInterest: string;
-  education: EducationEntry[];
-  experience: ExperienceEntry[];
-  projects: ProjectEntry[];
-  skills: { technical: string[]; soft: string[] };
-  availability: { freeTime: string; studyDays: string[] };
-  targetRole: string;
-  timeline: string;
-  visionStatement: string;
-  createdAt: string;
+  location?: string;
+  preferredLocations?: string[];
+  currentStatus?: string;
+  fieldOfInterest?: string;
+  education?: EducationEntry[];
+  experience?: ExperienceEntry[];
+  projects?: ProjectEntry[];
+  skills?: { technical?: string[]; soft?: string[] };
+  availability?: { freeTime?: string; studyDays?: string[] };
+  targetRole?: string;
+  timeline?: string;
+  visionStatement?: string;
+  createdAt?: string;
   isDemo?: boolean;
 }
 
@@ -53,7 +53,8 @@ export const authService = {
       console.error('Registration failed:', response.error);
       return null;
     }
-    return response.data as User;
+    // New response format includes { user, access_token, token_type }
+    return (response.data as any)?.user as User || response.data as User;
   },
 
   login: async (email: string, password?: string): Promise<User | null> => {
