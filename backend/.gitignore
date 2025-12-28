@@ -19,3 +19,13 @@ backend/models/whisper/base.pt
 
 backend/interview_recordings
 backend/interview_audio
+
+venv/
+node_modules/
+.git/
+.vite/
+__pycache__/
+backend/models/
+backend/interview_audio/
+*.pt
+*.onnx
