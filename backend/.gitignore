@@ -15,4 +15,4 @@ backend/models/**/*.onnx
 backend/models/**/*.pt
 
 backend/models/piper/
-backend/models/whisper/
+backend/models/whisper/base.pt
