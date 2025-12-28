@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional
 from app.config.settings import settings
 import json
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +18,83 @@ class InterviewLLMService:
     """
     
     def __init__(self):
-        self.client = Groq(api_key=settings.GROQ_API_KEY_INTERVIEW)
+        self.client = None
+        if settings.GROQ_API_KEY_INTERVIEW:
+            try:
+                self.client = Groq(api_key=settings.GROQ_API_KEY_INTERVIEW)
+            except Exception as e:
+                logger.warning(f"Could not initialize Groq client for interviews: {e}")
         self.model = "llama3-70b-8192"  # Best for reasoning
         self.fast_model = "llama3-8b-8192"  # For quick evaluations
+
+    def _extract_keywords(self, text: str, limit: int = 8) -> List[str]:
+        if not text:
+            return []
+        cleaned = re.sub(r"[^a-zA-Z0-9+.#\s]", " ", text.lower())
+        tokens = [t for t in cleaned.split() if 2 <= len(t) <= 24]
+        stop = {
+            "the","and","for","with","you","your","are","our","this","that","will","have","from","into","role",
+            "years","year","experience","work","team","teams","using","use","able","must","should","skills","skill",
+            "we","they","them","their","what","when","where","how","why","who","a","an","to","of","in","on","as"
+        }
+        tokens = [t for t in tokens if t not in stop]
+        freq: Dict[str, int] = {}
+        for t in tokens:
+            freq[t] = freq.get(t, 0) + 1
+        ranked = sorted(freq.items(), key=lambda kv: (-kv[1], kv[0]))
+        return [k for k, _ in ranked[:limit]]
+
+    def _fallback_question(self, context: Dict[str, Any], round_type: str, difficulty: str, forbidden: List[str]) -> Dict[str, Any]:
+        jd = (context.get("job_description") or "").strip()
+        topics = context.get("custom_topics") or []
+        company = context.get("company_name") or "the role"
+        keywords = self._extract_keywords(jd)
+        focus = keywords[:3] or [t for t in topics[:3] if isinstance(t, str)]
+        focus_text = ", ".join(focus) if focus else "the job requirements"
+
+        if round_type == "technical":
+            pool = [
+                f"Walk me through how you would design and implement a solution for {focus_text} mentioned in the job description.",
+                f"The role mentions {focus_text}. What trade-offs would you consider when building this in production?",
+                f"Pick one requirement from the job description (e.g., {focus_text}) and explain your approach end-to-end, including testing and deployment.",
+                f"What are the biggest performance or reliability risks you anticipate for {focus_text}, and how would you mitigate them?"
+            ]
+            category = "technical"
+            look_for = ["Clear approach", "Trade-offs", "Real-world considerations"]
+        elif round_type == "hr":
+            pool = [
+                f"Why are you interested in this position at {company}, and which part of the job description aligns best with your experience?",
+                "Tell me about a time you handled conflicting priorities. How did you decide what to do first?",
+                "Describe a situation where you received critical feedback. What did you change afterwards?",
+                "Tell me about a time you influenced a decision without formal authority."
+            ]
+            category = "behavioral"
+            look_for = ["Specific examples", "Ownership", "Reflection and learning"]
+        else:
+            pool = [
+                f"Explain a complex concept from your past work (related to {focus_text}) to a non-technical stakeholder.",
+                "When you don't know an answer in an interview, how do you communicate and proceed?",
+                "How do you structure your answers to be clear and concise under time pressure?",
+                "Describe how you collaborate with teammates to resolve misunderstandings and keep alignment."
+            ]
+            category = "communication"
+            look_for = ["Clarity", "Structure", "Stakeholder awareness"]
+
+        for q in pool:
+            if q not in forbidden:
+                return {
+                    "question": q,
+                    "category": category,
+                    "what_to_look_for": look_for,
+                    "sample_answer_points": []
+                }
+
+        return {
+            "question": f"What would you prioritize first in the first 30 days for this role, based on the job description?",
+            "category": "general",
+            "what_to_look_for": ["Prioritization", "Clarity", "Alignment to role"],
+            "sample_answer_points": []
+        }
     
     async def generate_interview_question(
         self,
@@ -47,6 +122,15 @@ class InterviewLLMService:
             }
         """
         
+        forbidden_questions = [
+            msg.get("message", "")
+            for msg in conversation_history
+            if msg.get("speaker") == "ai" and msg.get("message")
+        ]
+
+        if not self.client:
+            return self._fallback_question(context, round_type, difficulty, forbidden_questions)
+
         # Build system prompt
         system_prompt = self._build_question_prompt(context, round_type, difficulty)
         
@@ -57,6 +141,9 @@ class InterviewLLMService:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"""Previous conversation:
 {history_text}
+
+Do NOT repeat any of these previously asked questions (exact text):
+{json.dumps(forbidden_questions[-12:], ensure_ascii=False)}
 
 Generate the NEXT interview question that naturally follows this conversation.
 Return ONLY valid JSON, no markdown."""}
@@ -72,18 +159,24 @@ Return ONLY valid JSON, no markdown."""}
             )
             
             result = json.loads(response.choices[0].message.content)
-            logger.info(f"✅ Generated {round_type} question: {result['question'][:50]}...")
+
+            q = (result.get("question") or "").strip()
+            if not q or q in forbidden_questions:
+                return self._fallback_question(context, round_type, difficulty, forbidden_questions)
+
+            if "category" not in result:
+                result["category"] = "general"
+            if "what_to_look_for" not in result or not isinstance(result.get("what_to_look_for"), list):
+                result["what_to_look_for"] = []
+            if "sample_answer_points" not in result or not isinstance(result.get("sample_answer_points"), list):
+                result["sample_answer_points"] = []
+
+            logger.info(f"✅ Generated {round_type} question: {q[:50]}...")
             return result
             
         except Exception as e:
             logger.error(f"❌ Question generation error: {e}")
-            # Fallback question
-            return {
-                "question": "Can you tell me about a challenging project you worked on?",
-                "category": "behavioral",
-                "what_to_look_for": ["Problem description", "Your approach", "Outcome"],
-                "sample_answer_points": ["Clear problem", "Systematic solution", "Measurable results"]
-            }
+            return self._fallback_question(context, round_type, difficulty, forbidden_questions)
     
     async def evaluate_answer(
         self,

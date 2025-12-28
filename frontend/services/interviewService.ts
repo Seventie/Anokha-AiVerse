@@ -192,7 +192,17 @@ async startRound(interviewId: string, roundId: string): Promise<Question> {
     formData.append('interview_id', interviewId);
     formData.append('round_id', roundId);
     formData.append('question_id', questionId.toString());
-    formData.append('audio', audioBlob, 'answer.wav');
+
+    const mime = (audioBlob.type || '').toLowerCase();
+    const filename = mime.includes('webm')
+      ? 'answer.webm'
+      : mime.includes('mpeg') || mime.includes('mp3')
+      ? 'answer.mp3'
+      : mime.includes('mp4') || mime.includes('m4a')
+      ? 'answer.m4a'
+      : 'answer.wav';
+
+    formData.append('audio', audioBlob, filename);
 
     const token = localStorage.getItem('access_token') || localStorage.getItem('auth_token');
     

@@ -259,8 +259,20 @@ async def submit_answer_audio(
         # Save uploaded audio
         audio_dir = Path("./interview_audio/answers")
         audio_dir.mkdir(parents=True, exist_ok=True)
-        
-        audio_filename = f"answer_{question_id}_{current_user.id}.wav"
+
+        suffix = Path(audio.filename or "").suffix.lower()
+        if not suffix:
+            content_type = (audio.content_type or "").lower()
+            if "webm" in content_type:
+                suffix = ".webm"
+            elif "mpeg" in content_type or "mp3" in content_type:
+                suffix = ".mp3"
+            elif "mp4" in content_type or "m4a" in content_type:
+                suffix = ".m4a"
+            else:
+                suffix = ".wav"
+
+        audio_filename = f"answer_{question_id}_{current_user.id}{suffix}"
         audio_path = audio_dir / audio_filename
         
         with open(audio_path, "wb") as buffer:

@@ -202,14 +202,14 @@ class InterviewService:
             "round_type": round_obj.round_type
         }
         
-        # Get conversation history
+        # Get conversation history (ENTIRE interview for memory)
         history = db.query(InterviewConversation).filter(
-            InterviewConversation.round_id == round_id
-        ).order_by(InterviewConversation.timestamp).all()
-        
+            InterviewConversation.interview_id == interview_id
+        ).order_by(InterviewConversation.timestamp.desc()).limit(12).all()
+
         history_list = [
             {"speaker": conv.speaker, "message": conv.message_text}
-            for conv in history
+            for conv in reversed(history)
         ]
         
         # 🔥 Step 1: Generate question using Groq
@@ -220,6 +220,19 @@ class InterviewService:
             round_type=round_obj.round_type,
             difficulty=round_obj.difficulty
         )
+
+        previous_ai_questions = {
+            h.get("message")
+            for h in history_list
+            if h.get("speaker") == "ai" and h.get("message")
+        }
+        if question_data.get("question") in previous_ai_questions:
+            question_data = self.interview_llm._fallback_question(
+                context=context,
+                round_type=round_obj.round_type,
+                difficulty=round_obj.difficulty,
+                forbidden=list(previous_ai_questions)
+            )
         
         # Save question to database
         conversation = InterviewConversation(
@@ -240,13 +253,14 @@ class InterviewService:
         audio_filename = f"question_{conversation.id}.wav"
         audio_path = self.audio_path / audio_filename
         
-        await tts_service.synthesize(
+        generated_path = await tts_service.synthesize(
             text=question_data["question"],
             output_path=str(audio_path)
         )
         
-        # Update conversation with audio URL
-        conversation.audio_url = f"/interview_audio/{audio_filename}"
+        # Update conversation with audio URL (only if file exists)
+        if generated_path and Path(generated_path).exists():
+            conversation.audio_url = f"/interview_audio/{audio_filename}"
         db.commit()
         
         logger.info(f"✅ Question ready: {question_data['question'][:50]}...")

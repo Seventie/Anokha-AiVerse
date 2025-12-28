@@ -58,6 +58,10 @@ const InterviewSetup: React.FC<Props> = ({ onInterviewCreated, onCancel }) => {
     setLoading(true);
 
     try {
+      if (interviewType === 'company_specific' && !jobDescription.trim()) {
+        setError('Add a Job Description for more relevant questions (recommended).');
+      }
+
       const data = {
         interview_type: interviewType,
         company_name: interviewType === 'company_specific' ? companyName : undefined,

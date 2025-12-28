@@ -187,8 +187,8 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
   try {
     console.log('📄 Uploading and parsing resume...');
     
-    // ✅ ACTUAL BACKEND CALL - Upload to resume parser
-    const result = await resumeService.uploadResume(file);
+    // ✅ Onboarding parse does NOT require auth
+    const result = await resumeService.parseResume(file);
     
     console.log('✅ Resume parsed:', result.data);
 

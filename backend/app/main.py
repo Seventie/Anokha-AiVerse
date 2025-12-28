@@ -3,6 +3,7 @@
 from app.routes import auth, agents, knowledge_graph, interview
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.config.settings import settings
 from app.config.database import engine
 from app.models.database import Base
@@ -32,6 +33,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Static mounts
+app.mount("/interview_audio", StaticFiles(directory=settings.INTERVIEW_AUDIO_PATH), name="interview_audio")
+app.mount("/interview_recordings", StaticFiles(directory=settings.INTERVIEW_STORAGE_PATH), name="interview_recordings")
 
 # Create database tables
 @app.on_event("startup")

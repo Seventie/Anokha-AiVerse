@@ -71,9 +71,7 @@ class ResumeService {
     if (!token) {
       throw new Error('No authentication token found');
     }
-    return {
-      'Authorization': `Bearer ${token}`
-    };
+    return { 'Authorization': `Bearer ${token}` };
   }
 
   async uploadResume(file: File, jobDescription?: string): Promise<{ message: string; resume_id: string; data: ParsedResume }> {
@@ -92,6 +90,26 @@ class ResumeService {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.detail || 'Failed to upload resume');
+    }
+
+    return response.json();
+  }
+
+  async parseResume(file: File, jobDescription?: string): Promise<{ message: string; data: ParsedResume }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (jobDescription) {
+      formData.append('jd_text', jobDescription);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/resume/parse`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to parse resume');
     }
 
     return response.json();

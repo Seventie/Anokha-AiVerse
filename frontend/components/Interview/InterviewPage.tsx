@@ -83,9 +83,8 @@ const InterviewPage: React.FC<InterviewPageProps> = ({ user, onBack }) => {
         {/* Results Stage */}
         {stage === 'results' && interviewId && (
           <InterviewResults 
-            sessionId={interviewId}
-            onBackToSetup={handleBackToSetup}
-            onBackToDashboard={onBack}
+            interviewId={interviewId}
+            onClose={onBack}
           />
         )}
       </div>

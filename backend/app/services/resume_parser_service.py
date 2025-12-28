@@ -8,6 +8,7 @@ from typing import Dict, Any, Optional
 import asyncio
 from pathlib import Path
 import pdfplumber
+from docx import Document
 
 from app.config.settings import settings
 
@@ -99,6 +100,36 @@ class ResumeParserService:
         except Exception as e:
             logger.error(f"Error reading PDF: {e}")
         return text
+
+    def extract_text_from_docx(self, docx_path: str) -> str:
+        """Extract text from DOCX file"""
+        try:
+            doc = Document(docx_path)
+            paragraphs = [p.text for p in doc.paragraphs if p.text]
+            return "\n".join(paragraphs)
+        except Exception as e:
+            logger.error(f"Error reading DOCX: {e}")
+            return ""
+
+    def extract_text_from_txt(self, txt_path: str) -> str:
+        """Extract text from TXT file"""
+        try:
+            with open(txt_path, "r", encoding="utf-8", errors="ignore") as f:
+                return f.read()
+        except Exception as e:
+            logger.error(f"Error reading TXT: {e}")
+            return ""
+
+    def extract_text(self, file_path: str) -> str:
+        """Extract text from supported resume files"""
+        suffix = Path(file_path).suffix.lower()
+        if suffix == ".pdf":
+            return self.extract_text_from_pdf(file_path)
+        if suffix == ".docx":
+            return self.extract_text_from_docx(file_path)
+        if suffix == ".txt":
+            return self.extract_text_from_txt(file_path)
+        return ""
     
     def parse_personal_info(self, text: str) -> Dict[str, Any]:
         """Parse personal info from LLM output"""
@@ -285,9 +316,9 @@ Resume:
         logger.info(f"📄 Parsing resume: {file_path}")
         
         # Extract text
-        resume_text = self.extract_text_from_pdf(file_path)
+        resume_text = self.extract_text(file_path)
         if not resume_text:
-            raise ValueError("Could not extract text from PDF")
+            raise ValueError("Could not extract text from file")
         
         logger.info(f"✅ Extracted {len(resume_text)} characters")
         

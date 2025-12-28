@@ -19,6 +19,8 @@ router = APIRouter(prefix="/api/resume", tags=["Resume"])
 UPLOAD_DIR = Path("uploads/resumes")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+ALLOWED_SUFFIXES = {".pdf", ".docx", ".txt"}
+
 
 # ✅ TEMPORARY AUTH HELPER (until we find your actual one)
 async def get_current_user(authorization: str = Header(None)) -> dict:
@@ -51,8 +53,9 @@ async def upload_resume(
     """Upload and parse resume PDF"""
     
     # Validate file type
-    if not file.filename.endswith('.pdf'):
-        raise HTTPException(400, "Only PDF files are supported")
+    suffix = Path(file.filename).suffix.lower()
+    if suffix not in ALLOWED_SUFFIXES:
+        raise HTTPException(400, "Only PDF, DOCX, or TXT files are supported")
     
     user_id = current_user["user_id"]
     
@@ -107,6 +110,46 @@ async def upload_resume(
         if file_path.exists():
             file_path.unlink()
         raise HTTPException(500, f"Failed to parse resume: {str(e)}")
+
+
+@router.post("/parse")
+async def parse_resume_public(
+    file: UploadFile = File(...),
+    jd_text: str = None
+) -> Dict[str, Any]:
+    """Parse a resume without authentication (used during onboarding)."""
+
+    suffix = Path(file.filename).suffix.lower()
+    if suffix not in ALLOWED_SUFFIXES:
+        raise HTTPException(400, "Only PDF, DOCX, or TXT files are supported")
+
+    temp_dir = Path("uploads/temp")
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_name = Path(file.filename).name
+    temp_path = temp_dir / f"temp_{os.getpid()}_{safe_name}"
+
+    try:
+        with temp_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        parsed_data = await resume_parser_service.parse_resume(
+            str(temp_path),
+            jd_text=jd_text
+        )
+
+        return {
+            "message": "Resume parsed successfully",
+            "data": parsed_data
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Failed to parse resume: {str(e)}")
+    finally:
+        try:
+            if temp_path.exists():
+                temp_path.unlink()
+        except Exception:
+            pass
 
 
 @router.get("/current")
