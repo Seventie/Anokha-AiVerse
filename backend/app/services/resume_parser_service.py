@@ -9,7 +9,6 @@ import asyncio
 from pathlib import Path
 import pdfplumber
 
-from groq import Groq
 from app.config.settings import settings
 
 import logging
@@ -23,14 +22,31 @@ class ResumeParserService:
     """
     
     def __init__(self):
-        self.client = Groq(api_key=settings.GROQ_API_KEY)
-        self.model = "llama-3.3-70b-versatile"
-        logger.info("✅ Resume Parser Service initialized")
+        # Initialize Groq client only if API key is provided
+        self.client = None
+        self.model = None
+        if settings.GROQ_API_KEY:
+            try:
+                # Import Groq lazily to avoid heavy imports at module import time
+                from groq import Groq
+                self.client = Groq(api_key=settings.GROQ_API_KEY)
+                self.model = "llama-3.3-70b-versatile"
+                logger.info("✅ Resume Parser Service initialized with Groq")
+            except Exception as e:
+                logger.warning(f"Could not initialize Groq client: {e}")
+                self.client = None
+                self.model = None
+        else:
+            logger.info("⚠️ GROQ_API_KEY not set — running parser in offline/basic mode")
     
     async def call_llm(self, prompt: str, max_retries: int = 3) -> str:
         """Call Groq LLM with retry logic"""
         import time
-        
+        # If client not initialized, return empty (fallback to basic parsing)
+        if not self.client:
+            logger.debug("LLM client not available — skipping LLM calls")
+            return ""
+
         for attempt in range(max_retries):
             try:
                 response = await asyncio.to_thread(
@@ -43,22 +59,22 @@ class ResumeParserService:
                     temperature=0.2
                 )
                 return response.choices[0].message.content
-            
+
             except Exception as e:
                 error_str = str(e)
-                
+
                 if "rate_limit" in error_str or "429" in error_str:
                     wait_match = re.search(r"try again in ([\d.]+)s", error_str)
                     wait_time = float(wait_match.group(1)) if wait_match else 10
-                    
+
                     if attempt < max_retries - 1:
                         logger.warning(f"Rate limit hit. Waiting {wait_time:.1f}s...")
                         await asyncio.sleep(wait_time + 1)
                         continue
-                
+
                 logger.error(f"LLM Error: {e}")
                 return ""
-        
+
         return ""
     
     def safe_json_loads(self, text: str):

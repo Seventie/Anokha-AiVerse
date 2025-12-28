@@ -45,36 +45,47 @@ async def startup_event():
     logger.info("Creating database tables...")
     Base.metadata.create_all(bind=engine)
     logger.info("✓ Database tables created successfully")
-    
-    # Initialize Vector Database
+    # Schedule heavy service initializations in background to avoid blocking startup
+    async def init_vector_db():
+        try:
+            from app.services.vector_db import vector_db
+            logger.info("✓ Vector database initialized")
+        except Exception as e:
+            logger.warning(f"⚠ Vector database initialization failed: {e}")
+
+    async def init_graph_db():
+        try:
+            from app.services.graph_db import get_graph_db
+            graph_db = get_graph_db()
+            if graph_db.driver:
+                logger.info("✓ Neo4j Knowledge Graph connected")
+
+                # Verify static graphs exist (run in background)
+                try:
+                    with graph_db.driver.session() as session:
+                        skill_count = session.run("MATCH (s:Skill) RETURN count(s) as count").single()["count"]
+                        role_count = session.run("MATCH (j:JobRole) RETURN count(j) as count").single()["count"]
+
+                        if skill_count == 0 or role_count == 0:
+                            logger.warning("⚠ Static knowledge graphs not initialized!")
+                            logger.warning("  Run: python -m app.scripts.init_global_graphs")
+                        else:
+                            logger.info(f"  - Skills: {skill_count}")
+                            logger.info(f"  - Job Roles: {role_count}")
+                except Exception as inner_e:
+                    logger.warning(f"⚠ Knowledge graph verification failed: {inner_e}")
+            else:
+                logger.warning("⚠ Neo4j not connected - graph features disabled")
+        except Exception as e:
+            logger.warning(f"⚠ Knowledge Graph initialization failed: {e}")
+
+    # Fire-and-forget initialization tasks
     try:
-        from app.services.vector_db import vector_db
-        logger.info("✓ Vector database initialized")
+        import asyncio as _asyncio
+        _asyncio.create_task(init_vector_db())
+        _asyncio.create_task(init_graph_db())
     except Exception as e:
-        logger.warning(f"⚠ Vector database initialization failed: {e}")
-    
-    # Initialize Knowledge Graph
-    try:
-        from app.services.graph_db import get_graph_db
-        graph_db = get_graph_db()
-        if graph_db.driver:
-            logger.info("✓ Neo4j Knowledge Graph connected")
-            
-            # Verify static graphs exist
-            with graph_db.driver.session() as session:
-                skill_count = session.run("MATCH (s:Skill) RETURN count(s) as count").single()["count"]
-                role_count = session.run("MATCH (j:JobRole) RETURN count(j) as count").single()["count"]
-                
-                if skill_count == 0 or role_count == 0:
-                    logger.warning("⚠ Static knowledge graphs not initialized!")
-                    logger.warning("  Run: python -m app.scripts.init_global_graphs")
-                else:
-                    logger.info(f"  - Skills: {skill_count}")
-                    logger.info(f"  - Job Roles: {role_count}")
-        else:
-            logger.warning("⚠ Neo4j not connected - graph features disabled")
-    except Exception as e:
-        logger.warning(f"⚠ Knowledge Graph initialization failed: {e}")
+        logger.warning(f"Failed to schedule background inits: {e}")
     
     logger.info("=" * 80)
     logger.info("STARTUP COMPLETE - All systems ready")
@@ -167,9 +178,13 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
+    import platform
+    # Avoid using uvicorn auto-reload on Windows (can cause subprocess stdin issues)
+    use_reload = settings.ENVIRONMENT == "development" and platform.system() != "Windows"
+
     uvicorn.run(
         "app.main:app",
         host=settings.HOST,
         port=settings.PORT,
-        reload=settings.ENVIRONMENT == "development"
+        reload=use_reload
     )
