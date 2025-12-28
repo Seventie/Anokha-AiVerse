@@ -10,3 +10,6 @@ __pycache__/
 
 # Environment variables
 .env
+
+backend/models/**/*.onnx
+backend/models/**/*.pt
