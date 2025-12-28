@@ -1,0 +1,35 @@
+# Root ignore (prevents accidentally committing generated artifacts from any subproject)
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Node
+**/node_modules/
+**/dist/
+**/dist-ssr/
+**/.vite/
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/venv/
+
+# Environment files
+**/.env
+**/.env.*
+
+# Large generated media / recordings
+**/interview_audio/
+**/interview_recordings/
+**/uploads/
+
+# ML models
+**/models/
+**/*.pt
+**/*.onnx
