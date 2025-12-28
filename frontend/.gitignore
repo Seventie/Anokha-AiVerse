@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.vite
 *.local
 
 # Editor directories and files
@@ -24,15 +25,6 @@ dist-ssr
 *.sw?
 
 
-# Python virtual environment
-venv/
-.venv/
-env/
-ENV/
-
-# Python cache
-__pycache__/
-*.pyc
-
 # Environment variables
 .env
+.env.*
