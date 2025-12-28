@@ -1,296 +1,202 @@
-// frontend/components/Dashboard/ResumeModule.tsx
+// frontend/src/components/Dashboard/ResumeModule.tsx
 
-import React, { useState } from 'react';
-import { User } from '../../services/authService';
-import { agentService } from '../../services/agentService';
-import { 
-  FileText, Upload, Sparkles, TrendingUp, 
-  AlertCircle, CheckCircle, Loader2, Download,
-  Target, Zap, Edit3, Copy
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Upload, FileText, Trash2, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import { resumeService, ParsedResume, ResumeHistoryItem } from '../../services/resumeService';
 
-interface ResumeModuleProps {
-  user: User;
-}
+const ResumeModule: React.FC = () => {
+  const [currentResume, setCurrentResume] = useState<ParsedResume | null>(null);
+  const [history, setHistory] = useState<ResumeHistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-const ResumeModule: React.FC<ResumeModuleProps> = ({ user }) => {
-  const [resumeText, setResumeText] = useState('');
-  const [jobDescription, setJobDescription] = useState('');
-  const [analysis, setAnalysis] = useState<any>(null);
-  const [optimizedResume, setOptimizedResume] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<'analyze' | 'optimize'>('analyze');
+  useEffect(() => {
+    loadResume();
+    loadHistory();
+  }, []);
 
-  const handleAnalyze = async () => {
-    if (!resumeText.trim()) {
-      alert('Please paste your resume text');
-      return;
-    }
-
-    setLoading(true);
+  const loadResume = async () => {
     try {
-      const result = await agentService.analyzeResume(user.id, resumeText);
-      setAnalysis(result);
+      const data = await resumeService.getCurrentResume();
+      if (data) {
+        setCurrentResume(data.parsed_data);
+      }
     } catch (error) {
-      console.error('Failed to analyze:', error);
-      alert('Failed to analyze resume');
+      console.error('Failed to load resume:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOptimize = async () => {
-    if (!resumeText.trim()) {
-      alert('Please paste your resume text');
-      return;
-    }
-    if (!jobDescription.trim()) {
-      alert('Please paste the job description');
-      return;
-    }
-
-    setLoading(true);
+  const loadHistory = async () => {
     try {
-      const result = await agentService.optimizeResume(user.id, jobDescription);
-      setOptimizedResume(result.optimized_resume || '');
-      setAnalysis(result);
+      const data = await resumeService.getResumeHistory();
+      setHistory(data);
     } catch (error) {
-      console.error('Failed to optimize:', error);
-      alert('Failed to optimize resume');
-    } finally {
-      setLoading(false);
+      console.error('Failed to load history:', error);
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    alert('Copied to clipboard!');
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+
+    setUploading(true);
+    try {
+      const result = await resumeService.uploadResume(selectedFile);
+      setCurrentResume(result.data);
+      setSelectedFile(null);
+      loadHistory();
+      alert('✅ Resume uploaded and parsed successfully!');
+    } catch (error: any) {
+      alert(`Failed to upload: ${error.message}`);
+    } finally {
+      setUploading(false);
+    }
   };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      setSelectedFile(file);
+    } else {
+      alert('Please select a PDF file');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-light mb-2">Resume Intelligence</h2>
-          <p className="text-white/60">Analyze and optimize your resume</p>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setMode('analyze')}
-            className={`px-6 py-3 rounded-2xl font-medium transition-all ${
-              mode === 'analyze'
-                ? 'bg-primary/20 text-primary border border-primary/30'
-                : 'bg-white/5 text-white/60 hover:bg-white/10'
-            }`}
-          >
-            Analyze
-          </button>
-          <button
-            onClick={() => setMode('optimize')}
-            className={`px-6 py-3 rounded-2xl font-medium transition-all ${
-              mode === 'optimize'
-                ? 'bg-primary/20 text-primary border border-primary/30'
-                : 'bg-white/5 text-white/60 hover:bg-white/10'
-            }`}
-          >
-            Optimize
-          </button>
+    <div className="p-8 space-y-8">
+      {/* Upload Section */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6">
+        <h2 className="text-2xl font-bold mb-4">Upload Resume</h2>
+        
+        <div className="flex items-center gap-4">
+          <label className="flex-1 cursor-pointer">
+            <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 hover:border-primary transition-colors">
+              <div className="text-center">
+                <Upload className="mx-auto mb-2 text-gray-400" size={40} />
+                <p className="text-sm text-gray-600">
+                  {selectedFile ? selectedFile.name : 'Click to upload PDF resume'}
+                </p>
+              </div>
+            </div>
+            <input
+              type="file"
+              accept=".pdf"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+          </label>
+
+          {selectedFile && (
+            <button
+              onClick={handleUpload}
+              disabled={uploading}
+              className="px-6 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 disabled:opacity-50"
+            >
+              {uploading ? 'Parsing...' : 'Upload & Parse'}
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        {/* Input Section */}
-        <div className="space-y-6">
-          <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
-            <h3 className="text-lg font-medium mb-4 flex items-center gap-3">
-              <FileText size={20} className="text-primary" />
-              Resume Text
-            </h3>
-            <textarea
-              value={resumeText}
-              onChange={(e) => setResumeText(e.target.value)}
-              placeholder="Paste your resume text here..."
-              className="w-full h-64 bg-white/5 border border-white/10 rounded-2xl p-4 text-white placeholder-white/30 resize-none focus:outline-none focus:border-primary/50"
-            />
+      {/* Current Resume */}
+      {currentResume && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">Current Resume</h2>
+            <CheckCircle className="text-green-500" />
           </div>
 
-          {mode === 'optimize' && (
-            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
-              <h3 className="text-lg font-medium mb-4 flex items-center gap-3">
-                <Target size={20} className="text-primary" />
-                Job Description
-              </h3>
-              <textarea
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Paste the job description here..."
-                className="w-full h-48 bg-white/5 border border-white/10 rounded-2xl p-4 text-white placeholder-white/30 resize-none focus:outline-none focus:border-primary/50"
-              />
-            </div>
-          )}
-
-          <button
-            onClick={mode === 'analyze' ? handleAnalyze : handleOptimize}
-            disabled={loading}
-            className="w-full px-6 py-4 bg-primary text-bg-deep rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-[0_0_60px_rgba(212,212,170,0.4)] transition-all disabled:opacity-50"
-          >
-            {loading ? (
-              <>
-                <Loader2 size={20} className="animate-spin" />
-                {mode === 'analyze' ? 'Analyzing...' : 'Optimizing...'}
-              </>
-            ) : (
-              <>
-                <Zap size={20} />
-                {mode === 'analyze' ? 'Analyze Resume' : 'Optimize Resume'}
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Results Section */}
-        <div className="space-y-6">
-          {analysis && (
-            <>
-              {/* Score Card */}
-              <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
-                <h3 className="text-lg font-medium mb-4 flex items-center gap-3">
-                  <TrendingUp size={20} className="text-primary" />
-                  Resume Score
-                </h3>
-                <div className="flex items-center justify-center mb-4">
-                  <div className="relative w-32 h-32">
-                    <svg className="transform -rotate-90 w-32 h-32">
-                      <circle
-                        cx="64"
-                        cy="64"
-                        r="56"
-                        stroke="currentColor"
-                        strokeWidth="8"
-                        fill="none"
-                        className="text-white/10"
-                      />
-                      <circle
-                        cx="64"
-                        cy="64"
-                        r="56"
-                        stroke="currentColor"
-                        strokeWidth="8"
-                        fill="none"
-                        strokeDasharray={`${(analysis.resume_score || 0) * 3.52} 352`}
-                        className="text-primary"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-3xl font-bold text-primary">
-                        {analysis.resume_score || 0}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-center text-white/60 text-sm">Overall Quality Score</p>
+          <div className="space-y-6">
+            {/* Personal Info */}
+            <div>
+              <h3 className="font-semibold text-lg mb-2">Personal Information</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div><span className="text-gray-500">Name:</span> {currentResume.personal_info.fullName || 'N/A'}</div>
+                <div><span className="text-gray-500">Email:</span> {currentResume.personal_info.email || 'N/A'}</div>
+                <div><span className="text-gray-500">Phone:</span> {currentResume.personal_info.phone || 'N/A'}</div>
+                <div><span className="text-gray-500">Location:</span> {currentResume.personal_info.location || 'N/A'}</div>
               </div>
-
-              {/* Strengths */}
-              {analysis.strengths && analysis.strengths.length > 0 && (
-                <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
-                  <h3 className="text-lg font-medium mb-4 flex items-center gap-3">
-                    <CheckCircle size={20} className="text-green-400" />
-                    Strengths
-                  </h3>
-                  <ul className="space-y-2">
-                    {analysis.strengths.map((strength: string, idx: number) => (
-                      <li key={idx} className="flex items-start gap-3 text-white/80">
-                        <CheckCircle size={16} className="text-green-400 mt-0.5 flex-shrink-0" />
-                        <span>{strength}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Weaknesses */}
-              {analysis.weaknesses && analysis.weaknesses.length > 0 && (
-                <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
-                  <h3 className="text-lg font-medium mb-4 flex items-center gap-3">
-                    <AlertCircle size={20} className="text-yellow-400" />
-                    Areas for Improvement
-                  </h3>
-                  <ul className="space-y-2">
-                    {analysis.weaknesses.map((weakness: string, idx: number) => (
-                      <li key={idx} className="flex items-start gap-3 text-white/80">
-                        <AlertCircle size={16} className="text-yellow-400 mt-0.5 flex-shrink-0" />
-                        <span>{weakness}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Suggestions */}
-              {analysis.suggestions && analysis.suggestions.length > 0 && (
-                <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
-                  <h3 className="text-lg font-medium mb-4 flex items-center gap-3">
-                    <Sparkles size={20} className="text-primary" />
-                    Optimization Suggestions
-                  </h3>
-                  <div className="space-y-3">
-                    {analysis.suggestions.slice(0, 5).map((suggestion: any, idx: number) => (
-                      <div key={idx} className="p-3 bg-white/5 rounded-xl">
-                        <p className="text-sm text-white/80">{suggestion.suggestion || suggestion}</p>
-                        {suggestion.section && (
-                          <p className="text-xs text-white/40 mt-1">Section: {suggestion.section}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Optimized Resume */}
-              {optimizedResume && (
-                <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium flex items-center gap-3">
-                      <FileText size={20} className="text-primary" />
-                      Optimized Resume
-                    </h3>
-                    <button
-                      onClick={() => copyToClipboard(optimizedResume)}
-                      className="px-3 py-1 bg-white/10 hover:bg-white/20 rounded-xl flex items-center gap-2 text-sm transition-all"
-                    >
-                      <Copy size={14} />
-                      Copy
-                    </button>
-                  </div>
-                  <div className="bg-white/5 rounded-xl p-4 max-h-96 overflow-y-auto">
-                    <pre className="text-sm text-white/80 whitespace-pre-wrap font-sans">
-                      {optimizedResume}
-                    </pre>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-
-          {!analysis && (
-            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-12 text-center">
-              <FileText size={48} className="mx-auto mb-4 text-white/20" />
-              <p className="text-white/60">
-                {mode === 'analyze' 
-                  ? 'Paste your resume and click "Analyze Resume" to get started'
-                  : 'Paste your resume and job description, then click "Optimize Resume"'}
-              </p>
             </div>
-          )}
+
+            {/* Skills */}
+            <div>
+              <h3 className="font-semibold text-lg mb-2">Skills</h3>
+              <div className="flex flex-wrap gap-2">
+                {currentResume.skills.technical.map((skill, idx) => (
+                  <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Education */}
+            {currentResume.education.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-lg mb-2">Education</h3>
+                {currentResume.education.map((edu, idx) => (
+                  <div key={idx} className="mb-2">
+                    <p className="font-medium">{edu.degree}</p>
+                    <p className="text-sm text-gray-600">{edu.institution} • {edu.year}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Experience */}
+            {currentResume.experience.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-lg mb-2">Experience</h3>
+                {currentResume.experience.map((exp, idx) => (
+                  <div key={idx} className="mb-4">
+                    <p className="font-medium">{exp.title} at {exp.company}</p>
+                    <p className="text-sm text-gray-600">{exp.duration}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* History */}
+      {history.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
+          <h2 className="text-2xl font-bold mb-4">Upload History</h2>
+          <div className="space-y-2">
+            {history.map(item => (
+              <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <FileText className="text-gray-400" size={20} />
+                  <div>
+                    <p className="font-medium text-sm">{item.filename}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(item.uploaded_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                {item.is_active && (
+                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                    Active
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default ResumeModule;
-

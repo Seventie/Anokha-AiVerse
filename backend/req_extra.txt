@@ -46,3 +46,25 @@ pydub==0.25.1
 # Date & Time Utilities
 python-dateutil==2.8.2
 pytz==2023.3
+
+
+# backend/requirements.txt - ADD THESE
+
+# ==================== LOCAL AI MODELS ====================
+
+# Whisper (Local STT)
+openai-whisper==20231117
+# or faster-whisper for GPU optimization
+# faster-whisper==0.10.0
+
+# Piper TTS (Local TTS)
+piper-tts==1.2.0
+
+# Audio processing
+pydub==0.25.1
+soundfile==0.12.1
+scipy==1.11.4
+
+# ==================== EXISTING DEPENDENCIES ====================
+groq>=0.4.0
+# ... rest of your existing requirements

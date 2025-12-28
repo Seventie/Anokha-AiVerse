@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 import { authService, User } from '../services/authService';
+
+import { apiService } from '../services/apiService';
+import { resumeService } from '../services/resumeService';
 import { aiService } from '../services/aiService';
 import { 
   ArrowRight, 
@@ -19,7 +22,6 @@ import {
   Plus,
   Trash2,
   Layers,
-  Search,
   CheckCircle2,
   Upload,
   MapPin,
@@ -27,7 +29,8 @@ import {
   Map as MapIcon,
   Globe,
   ChevronDown,
-  Calendar
+  FileText,
+  AlertCircle
 } from 'lucide-react';
 
 const COMMON_SKILLS = [
@@ -51,6 +54,8 @@ const MONTHS = [
 
 const YEARS = Array.from({ length: 40 }, (_, i) => new Date().getFullYear() - i);
 
+const GEOAPIFY_API_KEY = 'cd06752ba8a24ecb9ee1b3282b24c70f';
+
 interface GetStartedProps {
   onLogin: () => void;
   onSuccess: (user: User) => void;
@@ -64,9 +69,10 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
   const [inputMethod, setInputMethod] = useState<'ai' | 'manual' | null>(null);
   const [skillInput, setSkillInput] = useState('');
   const [skillSuggestions, setSkillSuggestions] = useState<string[]>([]);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   
   const [locationQuery, setLocationQuery] = useState('');
-  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
+  const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -85,6 +91,7 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
     projects: [{ title: '', description: '', techStack: '' }],
     skills: { technical: [], soft: [] },
     resumeText: '',
+    resumeFile: null,
     availability: { freeTime: '2-4 hours', studyDays: [] },
     targetRole: 'Software Engineer',
     targetIndustry: '',
@@ -92,8 +99,9 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
     visionStatement: ''
   });
 
-  const steps = ["Account", "Identity", "Source", "Timeline", "Geography", "Logistics", "Strategic", "Verification"];
+  const steps = ["Account", "Identity", "Source", "Profile", "Geography", "Time", "Goals", "Review"];
 
+  // Skill suggestions
   useEffect(() => {
     if (skillInput.length > 1) {
       setSkillSuggestions(COMMON_SKILLS.filter(s => s.toLowerCase().includes(skillInput.toLowerCase()) && !formData.skills.technical.includes(s)));
@@ -102,13 +110,31 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
     }
   }, [skillInput, formData.skills.technical]);
 
+  // Geoapify location autocomplete
   useEffect(() => {
     const timer = setTimeout(async () => {
       if (locationQuery.length > 2) {
         setIsSearchingLocation(true);
-        const results = await aiService.suggestLocations(locationQuery);
-        setLocationSuggestions(results);
-        setIsSearchingLocation(false);
+        try {
+          const response = await fetch(
+            `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(locationQuery)}&apiKey=${GEOAPIFY_API_KEY}&limit=5`
+          );
+          const data = await response.json();
+          
+          if (data.features) {
+            const suggestions = data.features.map((feature: any) => ({
+              formatted: feature.properties.formatted,
+              city: feature.properties.city,
+              country: feature.properties.country,
+              state: feature.properties.state
+            }));
+            setLocationSuggestions(suggestions);
+          }
+        } catch (error) {
+          console.error('Location search failed:', error);
+        } finally {
+          setIsSearchingLocation(false);
+        }
       } else {
         setLocationSuggestions([]);
       }
@@ -117,7 +143,14 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
   }, [locationQuery]);
 
   const handleNext = () => {
-    if (step === 3 && inputMethod === 'manual') { setStep(4); return; }
+    if (step === 3 && inputMethod === 'manual') { 
+      setStep(4); 
+      return; 
+    }
+    if (step === 3 && inputMethod === 'ai' && !uploadedFile) {
+      setError('Please upload a resume file to continue');
+      return;
+    }
     if (step === 4) { setStep(5); return; }
     if (step === 5 && formData.currentStatus !== 'Student') { setStep(7); return; }
     if (step < 8) setStep(step + 1);
@@ -129,97 +162,205 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
     if (step > 1) setStep(step - 1);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const text = event.target?.result as string;
-      setFormData({ ...formData, resumeText: text });
-      await handleAIParse(text);
-    };
-    reader.readAsText(file);
+    setUploadedFile(file);
+    setError('');
+    
+    const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+    if (!validTypes.includes(file.type)) {
+      setError('Please upload a PDF, DOCX, or TXT file');
+      setUploadedFile(null);
+      return;
+    }
+
+    setFormData({ ...formData, resumeFile: file });
+    await handleAIParse(file);
   };
 
-  const handleAIParse = async (text: string) => {
-    setIsParsing(true);
-    const parsed = await aiService.parseResume(text);
-    if (parsed) {
-      setFormData((prev: any) => ({
-        ...prev,
-        fullName: parsed.fullName || prev.fullName,
-        location: parsed.location || prev.location,
-        education: (parsed.education && parsed.education.length > 0) ? parsed.education : prev.education,
-        experience: (parsed.experience && parsed.experience.length > 0) ? parsed.experience : prev.experience,
-        projects: (parsed.projects && parsed.projects.length > 0) ? parsed.projects : prev.projects,
-        skills: parsed.skills || prev.skills
-      }));
-      setStep(4);
-    }
+  const handleAIParse = async (file: File) => {
+  setIsParsing(true);
+  setError('');
+
+  try {
+    console.log('📄 Uploading and parsing resume...');
+    
+    // ✅ ACTUAL BACKEND CALL - Upload to resume parser
+    const result = await resumeService.uploadResume(file);
+    
+    console.log('✅ Resume parsed:', result.data);
+
+    // Extract data from parsed resume
+    const parsed = result.data;
+
+    // Auto-fill form with parsed data
+    setFormData(prev => ({
+      ...prev,
+      fullName: parsed.personal_info.fullName || prev.fullName,
+      email: parsed.personal_info.email || prev.email,
+      location: parsed.personal_info.location || prev.location,
+      
+      // Education
+      education: parsed.education.length > 0 
+        ? parsed.education.map(edu => ({
+            institution: edu.institution,
+            degree: edu.degree,
+            major: edu.degree, // Using degree as major fallback
+            location: '',
+            duration: edu.year
+          }))
+        : prev.education,
+      
+      // Experience
+      experience: parsed.experience.length > 0
+        ? parsed.experience.map(exp => ({
+            role: exp.title,
+            company: exp.company,
+            location: '',
+            duration: exp.duration,
+            description: exp.responsibilities.join('. ')
+          }))
+        : prev.experience,
+      
+      // Projects
+      projects: parsed.projects.length > 0
+        ? parsed.projects.map(proj => ({
+            title: proj.name,
+            description: proj.description,
+            techStack: proj.technologies.join(', ')
+          }))
+        : prev.projects,
+      
+      // Skills
+      skills: {
+        technical: parsed.skills.technical.length > 0 ? parsed.skills.technical : prev.skills.technical,
+        soft: parsed.skills.non_technical.length > 0 ? parsed.skills.non_technical : prev.skills.soft
+      },
+      
+      // Store resume file reference
+      resumeFile: file,
+      resumeText: JSON.stringify(parsed) // Store full parsed data
+    }));
+
+    // Move to next step
+    setStep(4);
+    
+  } catch (err: any) {
+    console.error('❌ Resume parsing failed:', err);
+    setError(`Failed to parse resume: ${err.message}. You can still fill in details manually.`);
+    // Still move to manual entry on error
+    setStep(4);
+  } finally {
     setIsParsing(false);
-  };
+  }
+};
+
 
   const handleFinalize = async () => {
-    setIsRegistering(true);
-    setError('');
+  setIsRegistering(true);
+  setError('');
 
-    try {
-      // Transform data to match backend schema
-      const registrationData = {
-        email: formData.email,
-        username: formData.username,
-        password: formData.password,
-        fullName: formData.fullName,
-        location: formData.location,
-        preferredLocations: formData.preferredLocations,
-        currentStatus: formData.currentStatus,
-        fieldOfInterest: formData.fieldOfInterest,
-        education: formData.education.map((edu: any) => ({
-          institution: edu.institution,
-          degree: edu.degree,
-          major: edu.major || '',
-          location: edu.location || '',
-          duration: edu.duration
-        })),
-        experience: formData.experience.map((exp: any) => ({
-          role: exp.role,
-          company: exp.company,
-          location: exp.location || '',
-          duration: exp.duration,
-          description: exp.description || ''
-        })),
-        projects: formData.projects.map((proj: any) => ({
-          title: proj.title,
-          description: proj.description || '',
-          techStack: proj.techStack || ''
-        })),
-        skills: {
-          technical: formData.skills.technical || [],
-          soft: formData.skills.soft || []
-        },
-        availability: {
-          freeTime: formData.availability.freeTime,
-          studyDays: formData.availability.studyDays
-        },
-        targetRole: formData.targetRole,
-        timeline: formData.timeline,
-        visionStatement: formData.visionStatement
-      };
-
-      const user = await authService.register(registrationData);
+  try {
+    // Transform data to match backend UserRegister schema
+    const registrationData = {
+      // Required fields
+      email: formData.email.trim(),
+      username: formData.username.trim(),
+      password: formData.password,
+      fullName: formData.fullName.trim() || formData.username.trim(),
       
-      if (user) {
-        onSuccess(user);
-      } else {
-        setError('Registration failed. Please try again.');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.');
-    } finally {
-      setIsRegistering(false);
+      // Optional fields with defaults
+      location: formData.location?.trim() || null,
+      preferredLocations: Array.isArray(formData.preferredLocations) ? formData.preferredLocations : [],
+      currentStatus: formData.currentStatus || "Working Professional",
+      fieldOfInterest: formData.fieldOfInterest || "Software Engineering",
+      
+      // Education: Filter empty + match EducationCreate schema
+      education: formData.education
+        .filter((e: any) => e.institution && e.institution.trim())
+        .map((edu: any) => ({
+          institution: edu.institution.trim(),
+          degree: edu.degree.trim() || "Bachelor's",
+          major: edu.major?.trim() || null,
+          location: edu.location?.trim() || null,
+          duration: edu.duration?.trim() || "",
+          start_date: null,
+          end_date: null,
+          grade: null
+        })),
+      
+      // Experience: Filter empty + match ExperienceCreate schema
+      experience: formData.experience
+        .filter((e: any) => e.role && e.role.trim())
+        .map((exp: any) => ({
+          role: exp.role.trim(),
+          company: exp.company.trim() || "",
+          location: exp.location?.trim() || null,
+          duration: exp.duration?.trim() || "",
+          description: exp.description?.trim() || "",
+          start_date: null,
+          end_date: null
+        })),
+      
+      // Projects: Filter empty + match ProjectCreate schema
+      projects: formData.projects
+        .filter((p: any) => p.title && p.title.trim())
+        .map((proj: any) => ({
+          title: proj.title.trim(),
+          description: proj.description?.trim() || "",
+          techStack: proj.techStack?.trim() || "",
+          link: null
+        })),
+      
+      // Skills: Must be dict with technical and soft arrays
+      skills: {
+        technical: Array.isArray(formData.skills?.technical) ? formData.skills.technical : [],
+        soft: Array.isArray(formData.skills?.soft) ? formData.skills.soft : []
+      },
+      
+      // Availability: Match AvailabilityCreate schema or null
+      availability: formData.availability?.freeTime ? {
+        freeTime: formData.availability.freeTime || "2-4 hours",
+        studyDays: Array.isArray(formData.availability.studyDays) ? formData.availability.studyDays : []
+      } : null,
+      
+      // Career goals
+      targetRole: formData.targetRole || "Software Engineer",
+      timeline: formData.timeline || "6 Months",
+      visionStatement: formData.visionStatement?.trim() || ""
+    };
+
+    console.log('📤 Sending registration data:', JSON.stringify(registrationData, null, 2));
+
+    const response = await apiService.register(registrationData);
+    
+    if (response.error) {
+      console.error('❌ Registration error:', response.error);
+      setError(response.error);
+      return;
     }
-  };
+    
+    if (response.data) {
+      console.log('✅ Registration successful:', response.data);
+      
+      // The response has { user, access_token, token_type }
+      const user = response.data.user;
+      
+      onSuccess(user);
+    } else {
+      setError('Registration failed. Please try again.');
+    }
+  } catch (err: any) {
+    console.error('❌ Registration exception:', err);
+    setError(err.message || 'Registration failed. Please try again.');
+  } finally {
+    setIsRegistering(false);
+  }
+};
+
+
 
   const addItem = (key: string, initial: any) => {
     setFormData({ ...formData, [key]: [...formData[key], initial] });
@@ -247,50 +388,54 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
     setSkillInput('');
   };
 
-  const addPreferredLocation = (loc: string) => {
-    if (formData.preferredLocations.length < 3 && !formData.preferredLocations.includes(loc)) {
-      setFormData({ ...formData, preferredLocations: [...formData.preferredLocations, loc] });
+  const addPreferredLocation = (location: any) => {
+    const locationString = location.formatted || location;
+    if (formData.preferredLocations.length < 3 && !formData.preferredLocations.includes(locationString)) {
+      setFormData({ ...formData, preferredLocations: [...formData.preferredLocations, locationString] });
     }
     setLocationQuery('');
     setLocationSuggestions([]);
   };
 
   return (
-    <div className="relative w-full min-h-screen pt-12 pb-24 px-6 flex flex-col items-center overflow-x-hidden font-inter text-white">
-      <div className="w-full max-w-4xl relative z-10">
+    <div className="relative w-full min-h-screen py-8 px-4 flex flex-col items-center overflow-hidden font-inter text-white">
+      <div className="w-full max-w-3xl relative z-10">
         
-        {/* Progress Tracker */}
-        <div className="flex flex-col gap-4 mb-8 px-4 max-w-xl mx-auto">
-          <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-[0.3em] text-white/20">
-            <span>Stage 0{step}</span>
-            <span className="text-primary tracking-[0.4em]">{steps[step-1]}</span>
+        {/* Compact Progress Tracker */}
+        <div className="flex flex-col gap-3 mb-6">
+          <div className="flex justify-between items-center text-[8px] font-bold uppercase tracking-[0.25em] text-white/20">
+            <span>Stage {step}/8</span>
+            <span className="text-primary">{steps[step-1]}</span>
             <span>{Math.round((step/8)*100)}%</span>
           </div>
-          <div className="w-full h-1 bg-white/5 rounded-full flex gap-1">
+          <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden flex">
             {steps.map((_, i) => (
-              <div key={i} className={`flex-1 h-full rounded-full transition-all duration-700 ${i + 1 <= step ? 'bg-primary shadow-[0_0_10px_rgba(212,212,170,0.3)]' : 'bg-white/5'}`} />
+              <div key={i} className={`flex-1 h-full transition-all duration-500 ${i + 1 <= step ? 'bg-primary' : 'bg-transparent'}`} />
             ))}
           </div>
         </div>
 
         {/* Error Display */}
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-sm text-center">
-            {error}
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs flex items-center gap-2">
+            <AlertCircle size={16} />
+            <span className="flex-1">{error}</span>
+            <button onClick={() => setError('')} className="text-red-400 hover:text-red-300"><X size={14} /></button>
           </div>
         )}
 
-        <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden">
-          <div className="min-h-[500px] flex flex-col relative z-10">
+        {/* Main Content Card - OPTIMIZED HEIGHT */}
+        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl">
+          <div className="flex flex-col" style={{ minHeight: '400px', maxHeight: '70vh' }}>
             
             {/* STEP 1: ACCOUNT */}
             {step === 1 && (
-              <StepLayout title="Identity Initialize" subtitle="Secure node access." icon={<Globe size={32} />}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-                  <DashInput label="Email Node" value={formData.email} onChange={(v: string) => setFormData({...formData, email: v})} />
-                  <DashInput label="Neural Handle" value={formData.username} onChange={(v: string) => setFormData({...formData, username: v})} />
+              <StepLayout title="Account Setup" subtitle="Create your secure access" icon={<Globe size={24} />}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <DashInput label="Email" value={formData.email} onChange={(v: string) => setFormData({...formData, email: v})} placeholder="you@example.com" />
+                  <DashInput label="Username" value={formData.username} onChange={(v: string) => setFormData({...formData, username: v})} placeholder="username" />
                   <div className="md:col-span-2">
-                    <DashInput label="Secret Key" type="password" value={formData.password} onChange={(v: string) => setFormData({...formData, password: v})} />
+                    <DashInput label="Password" type="password" value={formData.password} onChange={(v: string) => setFormData({...formData, password: v})} placeholder="••••••••" />
                   </div>
                 </div>
               </StepLayout>
@@ -298,106 +443,235 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
 
             {/* STEP 2: PROFILE */}
             {step === 2 && (
-              <StepLayout title="Professional Persona" subtitle="Fundamental parameters." icon={<UserIcon size={32} />}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-                  <DashInput label="Full Identity Name" value={formData.fullName} onChange={(v: string) => setFormData({...formData, fullName: v})} />
-                  <DashInput label="Current Origin" placeholder="e.g. London, UK" value={formData.location} onChange={(v: string) => setFormData({...formData, location: v})} />
-                  <DashSelect label="Current Loop Status" options={['Working Professional', 'Student', 'Career Switcher', 'Exploring']} value={formData.currentStatus} onChange={(v: string) => setFormData({...formData, currentStatus: v})} />
-                  <DashSelect label="Target Neural Field" options={['Software Engineering', 'Data Science', 'Product Management', 'Design', 'Marketing', 'Finance']} value={formData.fieldOfInterest} onChange={(v: string) => setFormData({...formData, fieldOfInterest: v})} />
+              <StepLayout title="Basic Info" subtitle="Tell us about yourself" icon={<UserIcon size={24} />}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <DashInput label="Full Name" value={formData.fullName} onChange={(v: string) => setFormData({...formData, fullName: v})} placeholder="John Doe" />
+                  <div className="relative">
+                    <label className="text-[9px] font-bold text-white/30 uppercase tracking-wider ml-3 block mb-2">Current Location</label>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        placeholder="City, Country" 
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:outline-none focus:border-primary/50 transition-all"
+                        value={formData.location}
+                        onChange={(e) => {
+                          setFormData({...formData, location: e.target.value});
+                          setLocationQuery(e.target.value);
+                        }}
+                      />
+                      {isSearchingLocation && <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-primary" />}
+                    </div>
+                    {locationSuggestions.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-bg-deep border border-white/20 rounded-xl overflow-hidden z-50 shadow-xl max-h-40 overflow-y-auto">
+                        {locationSuggestions.map((loc, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              setFormData({...formData, location: loc.formatted});
+                              setLocationSuggestions([]);
+                              setLocationQuery('');
+                            }}
+                            className="w-full p-2 hover:bg-white/10 text-left transition-all flex items-center gap-2 text-xs border-b border-white/5 last:border-0"
+                          >
+                            <MapPin size={12} className="text-primary shrink-0" />
+                            <span className="text-white">{loc.formatted}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <DashSelect label="Status" options={['Working Professional', 'Student', 'Career Switcher', 'Exploring']} value={formData.currentStatus} onChange={(v: string) => setFormData({...formData, currentStatus: v})} />
+                  <DashSelect label="Field" options={['Software Engineering', 'Data Science', 'Product Management', 'Design', 'Marketing', 'Finance']} value={formData.fieldOfInterest} onChange={(v: string) => setFormData({...formData, fieldOfInterest: v})} />
                 </div>
               </StepLayout>
             )}
 
             {/* STEP 3: INGESTION */}
             {step === 3 && (
-              <StepLayout title="Knowledge Sync" subtitle="Choose ingestion protocol." icon={<Layers size={32} />}>
-                <div className="mt-8 space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <StepLayout title="Data Source" subtitle="How would you like to proceed?" icon={<Layers size={24} />}>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <ChoiceCard 
                       active={inputMethod === 'ai'} 
-                      icon={<Upload size={28} className="text-primary" />} 
-                      title="AI Neural Parsing" 
-                      desc="Directly transmit resume for auto-filling." 
+                      icon={<Upload size={20} className="text-primary" />} 
+                      title="Upload Resume" 
+                      desc="AI will extract your details" 
                       onClick={() => setInputMethod('ai')} 
                     />
                     <ChoiceCard 
                       active={inputMethod === 'manual'} 
-                      icon={<Keyboard size={28} className="text-white/40" />} 
-                      title="Manual Construct" 
-                      desc="Build timeline manually for precision." 
+                      icon={<Keyboard size={20} className="text-white/40" />} 
+                      title="Manual Entry" 
+                      desc="Fill in details yourself" 
                       onClick={() => setInputMethod('manual')} 
                     />
                   </div>
 
                   {inputMethod === 'ai' && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                    <div className="space-y-3 animate-in fade-in">
                       <div 
                         onClick={() => fileInputRef.current?.click()}
-                        className="group w-full h-56 border-2 border-dashed border-white/10 rounded-[2.5rem] bg-white/[0.01] flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 hover:bg-white/[0.04] transition-all"
+                        className="w-full h-40 border-2 border-dashed border-white/10 rounded-2xl bg-white/[0.01] flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 hover:bg-white/[0.03] transition-all group"
                       >
-                        <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} accept=".pdf,.txt,.docx" />
-                        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform mb-4">
-                          {isParsing ? <Loader2 size={28} className="animate-spin" /> : <Upload size={28} />}
+                        <input 
+                          type="file" 
+                          ref={fileInputRef} 
+                          className="hidden" 
+                          onChange={handleFileUpload} 
+                          accept=".pdf,.txt,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" 
+                        />
+                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform mb-2">
+                          {isParsing ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
                         </div>
-                        <p className="text-xl font-light text-white mb-1">{isParsing ? 'Deconstructing Narrative...' : 'Drop Transmission or Click'}</p>
-                        <p className="text-white/20 text-[9px] font-bold uppercase tracking-[0.2em]">Supported: PDF, DOCX, TXT</p>
+                        <p className="text-sm font-light text-white mb-1">
+                          {isParsing ? 'Parsing resume...' : uploadedFile ? uploadedFile.name : 'Click to upload'}
+                        </p>
+                        <p className="text-white/30 text-[8px] font-bold uppercase tracking-wider">PDF, DOCX, TXT</p>
                       </div>
+                      
+                      {uploadedFile && !isParsing && (
+                        <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-3">
+                          <FileText className="text-primary" size={18} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-medium text-sm truncate">{uploadedFile.name}</p>
+                            <p className="text-white/40 text-xs">{(uploadedFile.size / 1024).toFixed(1)} KB</p>
+                          </div>
+                          <CheckCircle className="text-primary shrink-0" size={18} />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               </StepLayout>
             )}
 
-            {/* STEP 4: DETAIL MATRIX */}
+            {/* STEP 4: PROFILE DETAILS - SCROLLABLE */}
             {step === 4 && (
-              <StepLayout title="Detailed Chronology" subtitle="Verify milestones." icon={<Cpu size={32} />}>
-                <div className="mt-6 space-y-12 max-h-[500px] overflow-y-auto pr-4 custom-scroll">
-                  <SectionHeader title="Academic History" icon={<GraduationCap size={18}/>} onAdd={() => addItem('education', { institution: '', degree: '', major: '', location: '', duration: '' })} />
-                  <div className="space-y-6">
-                    {formData.education.map((edu: any, i: number) => (
-                      <div key={i} className="relative p-8 bg-white/5 border border-white/10 rounded-[2.5rem] group hover:border-primary/20 transition-all">
-                        {formData.education.length > 1 && <button onClick={() => removeItem('education', i)} className="absolute top-6 right-6 text-white/10 hover:text-red-400 transition-colors"><Trash2 size={16}/></button>}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                          <DashInput label="Institution" value={edu.institution} onChange={(v: string) => updateItem('education', i, 'institution', v)} />
-                          <DashInput label="Degree Level" value={edu.degree} onChange={(v: string) => updateItem('education', i, 'degree', v)} />
-                          <div className="md:col-span-2">
-                            <DashInput label="Specialization" value={edu.major} onChange={(v: string) => updateItem('education', i, 'major', v)} />
+              <StepLayout title="Your Profile" subtitle="Review and edit details" icon={<Cpu size={24} />}>
+                <div className="space-y-6 overflow-y-auto pr-2 custom-scroll" style={{ maxHeight: 'calc(70vh - 200px)' }}>
+                  
+                  {/* Skills */}
+                  <div>
+                    <SectionHeader title="Skills" icon={<Code2 size={16}/>} />
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Add skills..."
+                          value={skillInput}
+                          onChange={(e) => setSkillInput(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && skillInput.trim()) {
+                              addSkill(skillInput.trim());
+                            }
+                          }}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-primary/50 transition-all"
+                        />
+                        {skillSuggestions.length > 0 && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-bg-deep border border-white/20 rounded-xl overflow-hidden z-50 shadow-xl max-h-32 overflow-y-auto">
+                            {skillSuggestions.map((skill, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => addSkill(skill)}
+                                className="w-full p-2 hover:bg-white/10 text-left transition-all text-white text-xs border-b border-white/5 last:border-0"
+                              >
+                                {skill}
+                              </button>
+                            ))}
                           </div>
-                          <div className="md:col-span-2">
-                            <ProfessionalMilestoneComponent 
-                               label="Journey Duration & Location"
-                               duration={edu.duration}
-                               onDurationChange={(v: string) => updateItem('education', i, 'duration', v)}
-                               location={edu.location}
-                               onLocationChange={(v: string) => updateItem('education', i, 'location', v)}
-                            />
-                          </div>
-                        </div>
+                        )}
                       </div>
-                    ))}
+                      
+                      <div className="flex flex-wrap gap-2">
+                        {formData.skills.technical.map((skill: string, idx: number) => (
+                          <div key={idx} className="px-3 py-1 bg-primary/10 border border-primary/20 rounded-full flex items-center gap-2 text-xs">
+                            <span className="text-white">{skill}</span>
+                            <button
+                              onClick={() => {
+                                setFormData({
+                                  ...formData,
+                                  skills: {
+                                    ...formData.skills,
+                                    technical: formData.skills.technical.filter((_: any, i: number) => i !== idx)
+                                  }
+                                });
+                              }}
+                              className="text-white/40 hover:text-red-400"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
-                  <SectionHeader title="Professional Loop" icon={<Briefcase size={18}/>} onAdd={() => addItem('experience', { role: '', company: '', location: '', duration: '', description: '' })} />
-                  <div className="space-y-6">
-                    {formData.experience.map((exp: any, i: number) => (
-                      <div key={i} className="relative p-8 bg-white/5 border border-white/10 rounded-[2.5rem] group hover:border-primary/20 transition-all">
-                        {formData.experience.length > 1 && <button onClick={() => removeItem('experience', i)} className="absolute top-6 right-6 text-white/10 hover:text-red-400 transition-colors"><Trash2 size={16}/></button>}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                          <DashInput label="Role" value={exp.role} onChange={(v: string) => updateItem('experience', i, 'role', v)} />
-                          <DashInput label="Entity" value={exp.company} onChange={(v: string) => updateItem('experience', i, 'company', v)} />
-                          <div className="md:col-span-2">
-                             <ProfessionalMilestoneComponent 
-                                label="Career Node Details"
-                                duration={exp.duration}
-                                onDurationChange={(v: string) => updateItem('experience', i, 'duration', v)}
-                                location={exp.location}
-                                onLocationChange={(v: string) => updateItem('experience', i, 'location', v)}
-                             />
+                  {/* Education */}
+                  <div>
+                    <SectionHeader title="Education" icon={<GraduationCap size={16}/>} onAdd={() => addItem('education', { institution: '', degree: '', major: '', location: '', duration: '' })} />
+                    <div className="space-y-3">
+                      {formData.education.map((edu: any, i: number) => (
+                        <div key={i} className="relative p-4 bg-white/5 border border-white/10 rounded-xl group hover:border-primary/20 transition-all">
+                          {formData.education.length > 1 && (
+                            <button onClick={() => removeItem('education', i)} className="absolute top-3 right-3 text-white/20 hover:text-red-400">
+                              <Trash2 size={14}/>
+                            </button>
+                          )}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <DashInput label="Institution" value={edu.institution} onChange={(v: string) => updateItem('education', i, 'institution', v)} placeholder="University name" />
+                            <DashInput label="Degree" value={edu.degree} onChange={(v: string) => updateItem('education', i, 'degree', v)} placeholder="B.Tech, M.Sc" />
+                            <DashInput label="Major" value={edu.major} onChange={(v: string) => updateItem('education', i, 'major', v)} placeholder="Computer Science" />
+                            <DashInput label="Duration" value={edu.duration} onChange={(v: string) => updateItem('education', i, 'duration', v)} placeholder="2020-2024" />
                           </div>
-                          <div className="md:col-span-2"><DashInput textarea label="Core Mission Results" value={exp.description} onChange={(v: string) => updateItem('experience', i, 'description', v)} /></div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Experience */}
+                  <div>
+                    <SectionHeader title="Experience" icon={<Briefcase size={16}/>} onAdd={() => addItem('experience', { role: '', company: '', location: '', duration: '', description: '' })} />
+                    <div className="space-y-3">
+                      {formData.experience.map((exp: any, i: number) => (
+                        <div key={i} className="relative p-4 bg-white/5 border border-white/10 rounded-xl group hover:border-primary/20 transition-all">
+                          {formData.experience.length > 1 && (
+                            <button onClick={() => removeItem('experience', i)} className="absolute top-3 right-3 text-white/20 hover:text-red-400">
+                              <Trash2 size={14}/>
+                            </button>
+                          )}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <DashInput label="Role" value={exp.role} onChange={(v: string) => updateItem('experience', i, 'role', v)} placeholder="Software Engineer" />
+                            <DashInput label="Company" value={exp.company} onChange={(v: string) => updateItem('experience', i, 'company', v)} placeholder="Company name" />
+                            <DashInput label="Duration" value={exp.duration} onChange={(v: string) => updateItem('experience', i, 'duration', v)} placeholder="Jan 2023 - Present" />
+                            <DashInput label="Location" value={exp.location} onChange={(v: string) => updateItem('experience', i, 'location', v)} placeholder="City, Country" />
+                            <div className="md:col-span-2">
+                              <DashInput textarea label="Description" value={exp.description} onChange={(v: string) => updateItem('experience', i, 'description', v)} placeholder="Key achievements..." />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Projects */}
+                  <div>
+                    <SectionHeader title="Projects" icon={<Layers size={16}/>} onAdd={() => addItem('projects', { title: '', description: '', techStack: '' })} />
+                    <div className="space-y-3">
+                      {formData.projects.map((proj: any, i: number) => (
+                        <div key={i} className="relative p-4 bg-white/5 border border-white/10 rounded-xl group hover:border-primary/20 transition-all">
+                          {formData.projects.length > 1 && (
+                            <button onClick={() => removeItem('projects', i)} className="absolute top-3 right-3 text-white/20 hover:text-red-400">
+                              <Trash2 size={14}/>
+                            </button>
+                          )}
+                          <div className="space-y-3">
+                            <DashInput label="Project Title" value={proj.title} onChange={(v: string) => updateItem('projects', i, 'title', v)} placeholder="Project name" />
+                            <DashInput textarea label="Description" value={proj.description} onChange={(v: string) => updateItem('projects', i, 'description', v)} placeholder="What did you build?" />
+                            <DashInput label="Tech Stack" value={proj.techStack} onChange={(v: string) => updateItem('projects', i, 'techStack', v)} placeholder="React, Node.js, MongoDB" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </StepLayout>
@@ -405,44 +679,52 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
 
             {/* STEP 5: PREFERRED LOCATIONS */}
             {step === 5 && (
-              <StepLayout title="Spatial Vectors" subtitle="Deployment zones." icon={<MapIcon size={32} />}>
-                <div className="mt-8 space-y-8">
+              <StepLayout title="Preferred Locations" subtitle="Where do you want to work?" icon={<MapIcon size={24} />}>
+                <div className="space-y-4">
                   <div className="relative">
-                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20"><MapPin size={22}/></div>
                     <input 
                       type="text" 
-                      placeholder="Sync with Maps..." 
-                      className="w-full bg-white/5 border border-white/10 rounded-[2rem] pl-16 pr-6 py-6 text-xl text-white focus:outline-none focus:border-primary/50 transition-all font-light"
+                      placeholder="Search cities..." 
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-10 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all placeholder-white/20"
                       value={locationQuery}
                       onChange={(e) => setLocationQuery(e.target.value)}
                     />
-                    {isSearchingLocation && <div className="absolute right-6 top-1/2 -translate-y-1/2"><Loader2 size={20} className="animate-spin text-primary"/></div>}
+                    <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                    {isSearchingLocation && <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-primary"/>}
                   </div>
 
                   {locationSuggestions.length > 0 && (
-                    <div className="space-y-2">
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
                       {locationSuggestions.map((loc, idx) => (
                         <button
                           key={idx}
                           onClick={() => addPreferredLocation(loc)}
-                          className="w-full p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-left transition-all"
+                          disabled={formData.preferredLocations.length >= 3}
+                          className="w-full p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-left transition-all disabled:opacity-30 text-xs"
                         >
-                          <div className="flex items-center gap-3">
-                            <MapPin size={18} className="text-primary" />
-                            <span className="text-white">{loc}</span>
+                          <div className="flex items-center gap-2">
+                            <MapPin size={14} className="text-primary shrink-0" />
+                            <span className="text-white truncate">{loc.formatted}</span>
                           </div>
                         </button>
                       ))}
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <p className="text-white/40 text-xs text-center">Select up to 3 locations ({formData.preferredLocations.length}/3)</p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {formData.preferredLocations.map((loc: string, i: number) => (
-                      <div key={i} className="p-8 bg-primary/5 border border-primary/20 rounded-[2.5rem] flex flex-col justify-between items-start group">
-                        <MapPin size={28} className="text-primary mb-6" />
-                        <div className="w-full flex justify-between items-end">
-                          <p className="text-xl font-medium text-white tracking-tight">{loc}</p>
-                          <button onClick={() => setFormData({...formData, preferredLocations: formData.preferredLocations.filter((l:any)=>l!==loc)})} className="text-white/20 hover:text-red-400 transition-colors"><Trash2 size={16}/></button>
+                      <div key={i} className="p-4 bg-primary/5 border border-primary/20 rounded-xl flex flex-col gap-2">
+                        <MapPin size={20} className="text-primary" />
+                        <div className="flex justify-between items-end gap-2">
+                          <p className="text-sm font-medium text-white leading-tight flex-1 break-words">{loc}</p>
+                          <button 
+                            onClick={() => setFormData({...formData, preferredLocations: formData.preferredLocations.filter((l:any)=>l!==loc)})} 
+                            className="text-white/20 hover:text-red-400 shrink-0"
+                          >
+                            <Trash2 size={14}/>
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -451,20 +733,31 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
               </StepLayout>
             )}
 
-            {/* STEP 6: TEMPORAL LOGISTICS */}
+            {/* STEP 6: TIME AVAILABILITY */}
             {step === 6 && (
-              <StepLayout title="Temporal Sync" subtitle="Growth cycle sync." icon={<Clock size={32} />}>
-                <div className="mt-8 space-y-12">
-                  <DashSelect label="Free Energy Per Cycle (Daily)" options={['1-2 hours', '2-4 hours', '4-6 hours', '6+ hours']} value={formData.availability.freeTime} onChange={(v: string) => setFormData({...formData, availability: {...formData.availability, freeTime: v}})} />
-                  <div className="space-y-6">
-                    <label className="text-[10px] font-bold text-white/20 uppercase tracking-[0.4em] ml-4">Intensive Study Cycles</label>
-                    <div className="flex flex-wrap gap-4">
+              <StepLayout title="Availability" subtitle="Your learning schedule" icon={<Clock size={24} />}>
+                <div className="space-y-6">
+                  <DashSelect label="Daily Study Time" options={['1-2 hours', '2-4 hours', '4-6 hours', '6+ hours']} value={formData.availability.freeTime} onChange={(v: string) => setFormData({...formData, availability: {...formData.availability, freeTime: v}})} />
+                  
+                  <div className="space-y-3">
+                    <label className="text-[9px] font-bold text-white/30 uppercase tracking-wider ml-3">Study Days</label>
+                    <div className="flex flex-wrap gap-2">
                       {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                        <button key={day} onClick={() => {
-                          const days = formData.availability.studyDays;
-                          const next = days.includes(day) ? days.filter((d:any)=>d!==day) : [...days, day];
-                          setFormData({...formData, availability: {...formData.availability, studyDays: next}});
-                        }} className={`w-16 h-16 rounded-[1.5rem] border flex items-center justify-center font-bold text-sm transition-all ${formData.availability.studyDays.includes(day) ? 'bg-primary border-primary text-bg-deep shadow-[0_0_20px_rgba(212,212,170,0.3)] scale-110' : 'bg-white/5 border-white/5 text-white/30 hover:border-white/20'}`}>{day}</button>
+                        <button 
+                          key={day} 
+                          onClick={() => {
+                            const days = formData.availability.studyDays;
+                            const next = days.includes(day) ? days.filter((d:any)=>d!==day) : [...days, day];
+                            setFormData({...formData, availability: {...formData.availability, studyDays: next}});
+                          }} 
+                          className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                            formData.availability.studyDays.includes(day) 
+                              ? 'bg-primary border-primary text-bg-deep' 
+                              : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20'
+                          }`}
+                        >
+                          {day}
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -472,53 +765,72 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
               </StepLayout>
             )}
 
-            {/* STEP 7: STRATEGIC GOALS */}
+            {/* STEP 7: GOALS */}
             {step === 7 && (
-              <StepLayout title="Strategic Terminal" subtitle="Terminal objective." icon={<Target size={32} />}>
-                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-10">
-                  <DashSelect label="Target Neural Role" options={ROLES} value={formData.targetRole} onChange={(v: string) => setFormData({...formData, targetRole: v})} />
-                  <DashSelect label="Timeline Convergence" options={['3 Months', '6 Months', '12 Months', 'Flexible']} value={formData.timeline} onChange={(v: string) => setFormData({...formData, timeline: v})} />
-                  <div className="md:col-span-2"><DashInput textarea label="Mission Vision Directive" value={formData.visionStatement} onChange={(v: string) => setFormData({...formData, visionStatement: v})} /></div>
+              <StepLayout title="Career Goals" subtitle="What are you aiming for?" icon={<Target size={24} />}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <DashSelect label="Target Role" options={ROLES} value={formData.targetRole} onChange={(v: string) => setFormData({...formData, targetRole: v})} />
+                  <DashSelect label="Timeline" options={['3 Months', '6 Months', '12 Months', 'Flexible']} value={formData.timeline} onChange={(v: string) => setFormData({...formData, timeline: v})} />
+                  <div className="md:col-span-2">
+                    <DashInput textarea label="Vision Statement" value={formData.visionStatement} onChange={(v: string) => setFormData({...formData, visionStatement: v})} placeholder="Describe your career aspirations..." />
+                  </div>
                 </div>
               </StepLayout>
             )}
 
             {/* STEP 8: FINAL REVIEW */}
             {step === 8 && (
-              <StepLayout title="Neural Finalization" subtitle="Verify dataset." icon={<CheckCircle size={32} />}>
-                <div className="mt-6 space-y-8 max-h-[500px] overflow-y-auto pr-4 custom-scroll">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <FinalReviewCard label="Identity" value={formData.fullName} sub={formData.email} />
-                    <FinalReviewCard label="State" value={formData.currentStatus} sub={formData.fieldOfInterest} />
-                    <FinalReviewCard label="Origin" value={formData.location} sub={`${formData.preferredLocations.length} Vectors`} />
-                    <FinalReviewCard label="Mission" value={formData.targetRole} sub={formData.timeline} />
+              <StepLayout title="Review" subtitle="Confirm your details" icon={<CheckCircle size={24} />}>
+                <div className="space-y-4 overflow-y-auto pr-2" style={{ maxHeight: 'calc(70vh - 200px)' }}>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <ReviewCard label="Name" value={formData.fullName} />
+                    <ReviewCard label="Email" value={formData.email} />
+                    <ReviewCard label="Location" value={formData.location} />
+                    <ReviewCard label="Status" value={formData.currentStatus} />
                   </div>
 
-                  <div className="p-16 bg-primary/10 border border-primary/20 rounded-[4rem] text-center mt-8 shadow-2xl">
-                    <CheckCircle2 size={60} className="text-primary mx-auto mb-6 animate-pulse" />
-                    <h4 className="text-4xl text-primary font-serif italic mb-4">Neural Sync Ready</h4>
-                    <p className="text-white/40 text-lg font-light">Agent architecture primed for initialization.</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <ReviewCard label="Education" value={`${formData.education.filter((e:any)=>e.institution).length} entries`} />
+                    <ReviewCard label="Experience" value={`${formData.experience.filter((e:any)=>e.role).length} roles`} />
+                    <ReviewCard label="Skills" value={`${formData.skills.technical.length} skills`} />
+                  </div>
+
+                  <div className="p-6 bg-primary/10 border border-primary/20 rounded-2xl text-center">
+                    <CheckCircle2 size={40} className="text-primary mx-auto mb-3" />
+                    <h4 className="text-xl text-primary font-medium mb-2">Ready to Start</h4>
+                    <p className="text-white/50 text-sm">Your AI career assistant is waiting</p>
                   </div>
                 </div>
               </StepLayout>
             )}
 
-            <div className="mt-auto pt-16 flex items-center justify-between">
-              <button onClick={handleBack} className={`flex items-center gap-3 text-white/20 hover:text-white transition-colors uppercase text-[10px] font-bold tracking-[0.3em] ${step === 1 ? 'invisible' : ''}`}><ChevronLeft size={16}/> Previous</button>
+            {/* Navigation */}
+            <div className="mt-auto pt-6 flex items-center justify-between border-t border-white/10">
+              <button 
+                onClick={handleBack} 
+                className={`flex items-center gap-2 text-white/40 hover:text-white transition-colors text-xs font-medium ${step === 1 ? 'invisible' : ''}`}
+              >
+                <ChevronLeft size={16}/> Back
+              </button>
               <button 
                 onClick={handleNext} 
-                disabled={(step === 1 && (!formData.email || !formData.password || !formData.username)) || isRegistering} 
-                className="group px-16 py-6 bg-primary text-bg-deep rounded-[2rem] font-bold tracking-[0.2em] flex items-center gap-8 hover:shadow-[0_0_60px_rgba(212,212,170,0.4)] disabled:opacity-20 disabled:cursor-not-allowed transition-all transform active:scale-95 text-base"
+                disabled={(step === 1 && (!formData.email || !formData.password || !formData.username)) || (step === 3 && inputMethod === 'ai' && !uploadedFile) || isRegistering || isParsing} 
+                className="px-8 py-3 bg-primary text-bg-deep rounded-xl font-bold text-sm flex items-center gap-3 hover:shadow-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               >
                 {isRegistering ? (
                   <>
-                    <Loader2 size={22} className="animate-spin" />
-                    SYNCING...
+                    <Loader2 size={18} className="animate-spin" />
+                    Creating...
+                  </>
+                ) : isParsing ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Parsing...
                   </>
                 ) : (
                   <>
-                    {step === 8 ? 'FINALIZE SYNC' : 'CONTINUE'}
-                    <ArrowRight size={22} className="group-hover:translate-x-3 transition-transform" />
+                    {step === 8 ? 'Complete' : 'Continue'}
+                    <ArrowRight size={18} />
                   </>
                 )}
               </button>
@@ -529,122 +841,99 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
     </div>
   );
 };
-const DashDropdown = ({ value, options, onChange }: any) => (
-  <div className="relative flex-1 group">
-    <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none focus:outline-none focus:border-primary/50 text-xs font-light hover:bg-white/[0.08] transition-all cursor-pointer shadow-sm">
-      {options.map((opt: string) => <option key={opt} value={opt} className="bg-bg-deep text-white">{opt}</option>)}
-    </select>
-    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/20 group-hover:text-primary transition-colors"><ChevronDown size={12} /></div>
-  </div>
-);
 
-/* --- Compact Helper Components --- */
+/* --- COMPACT COMPONENTS --- */
+
 const StepLayout = ({ icon, title, subtitle, children }: any) => (
-  <div className="animate-in fade-in slide-in-from-right-10 duration-700">
-    <div className="flex items-center gap-6 mb-8">
-      <div className="w-16 h-16 rounded-[1.5rem] bg-primary/10 flex items-center justify-center text-primary shadow-inner flex-shrink-0">
+  <div className="animate-in fade-in slide-in-from-right duration-500">
+    <div className="flex items-center gap-4 mb-6">
+      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
         {icon}
       </div>
       <div>
-        <h2 className="text-4xl font-light text-white tracking-tighter leading-tight">{title}</h2>
-        <p className="text-white/30 text-base italic font-light tracking-wide">{subtitle}</p></div>
+        <h2 className="text-2xl font-light text-white">{title}</h2>
+        <p className="text-white/40 text-xs">{subtitle}</p>
+      </div>
     </div>
-    <div className="w-full">{children}</div>
+    {children}
   </div>
 );
 
 const ChoiceCard = ({ icon, title, desc, onClick, active }: any) => (
-  <button onClick={onClick} className={`p-8 border rounded-[2.5rem] text-left transition-all group relative overflow-hidden h-full flex flex-col ${active ? 'bg-white/10 border-primary shadow-xl scale-[1.02]' : 'bg-white/5 border-white/5 hover:border-white/20'}`}>
-    <div className="mb-6 w-16 h-16 rounded-[1.5rem] bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">{icon}</div>
-    <h3 className="text-2xl font-bold text-white mb-3 tracking-tight">{title}</h3>
-    <p className="text-white/40 text-sm leading-relaxed font-light">{desc}</p>
-    {active && <div className="absolute top-6 right-6 text-primary"><CheckCircle size={24} /></div>}
+  <button 
+    onClick={onClick} 
+    className={`p-4 border rounded-xl text-left transition-all relative ${
+      active ? 'bg-white/10 border-primary' : 'bg-white/5 border-white/10 hover:border-white/20'
+    }`}
+  >
+    <div className="mb-3 w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">{icon}</div>
+    <h3 className="text-base font-semibold text-white mb-1">{title}</h3>
+    <p className="text-white/50 text-xs">{desc}</p>
+    {active && <CheckCircle size={18} className="absolute top-3 right-3 text-primary" />}
   </button>
 );
 
 const DashInput = ({ label, placeholder, value, onChange, textarea, type = "text" }: any) => (
-  <div className="space-y-3 w-full text-white">
-    <label className="text-[10px] font-bold text-white/20 uppercase tracking-[0.3em] ml-4">{label}</label>
+  <div className="space-y-2">
+    <label className="text-[9px] font-bold text-white/30 uppercase tracking-wider ml-3">{label}</label>
     {textarea ? (
-      <textarea className="w-full bg-white/5 border border-white/10 rounded-[2rem] p-6 text-white placeholder-white/5 focus:outline-none focus:border-primary/50 transition-all text-base font-light min-h-[160px] resize-none shadow-sm" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
+      <textarea 
+        className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-white/20 focus:outline-none focus:border-primary/50 transition-all resize-none" 
+        placeholder={placeholder} 
+        value={value} 
+        onChange={(e) => onChange(e.target.value)}
+        rows={3}
+      />
     ) : (
-      <input type={type} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder-white/5 focus:outline-none focus:border-primary/50 transition-all text-base font-light shadow-sm" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
+      <input 
+        type={type} 
+        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:outline-none focus:border-primary/50 transition-all" 
+        placeholder={placeholder} 
+        value={value} 
+        onChange={(e) => onChange(e.target.value)} 
+      />
     )}
   </div>
 );
 
 const DashSelect = ({ label, options, value, onChange }: any) => (
-  <div className="space-y-3 w-full text-white">
-    <label className="text-[10px] font-bold text-white/20 uppercase tracking-[0.3em] ml-4">{label}</label>
+  <div className="space-y-2">
+    <label className="text-[9px] font-bold text-white/30 uppercase tracking-wider ml-3">{label}</label>
     <div className="relative">
-      <select className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white appearance-none focus:outline-none focus:border-primary/50 text-base font-light cursor-pointer shadow-sm" value={value} onChange={(e) => onChange(e.target.value)}>
-        {options.map((opt: string) => <option key={opt} value={opt} className="bg-bg-deep text-white">{opt}</option>)}
+      <select 
+        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white appearance-none focus:outline-none focus:border-primary/50 cursor-pointer" 
+        value={value} 
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {options.map((opt: string) => <option key={opt} value={opt} className="bg-bg-deep">{opt}</option>)}
       </select>
-      <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-white/20"><ChevronDown size={18}/></div>
+      <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/30" />
     </div>
   </div>
 );
 
 const SectionHeader = ({ title, icon, onAdd }: any) => (
-  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-white/10 pb-6 mb-8 mt-12 gap-4">
-    <div className="flex items-center gap-4 text-primary">
-      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">{icon}</div>
-      <h4 className="text-sm font-bold uppercase tracking-[0.4em]">{title}</h4>
+  <div className="flex items-center justify-between mb-3">
+    <div className="flex items-center gap-2 text-primary">
+      <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">{icon}</div>
+      <h4 className="text-xs font-bold uppercase tracking-wider">{title}</h4>
     </div>
-    {onAdd && <button onClick={onAdd} className="flex items-center gap-3 px-6 py-2.5 bg-white/5 hover:bg-white/10 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all border border-white/5"><Plus size={16}/> New Entry</button>}
+    {onAdd && (
+      <button 
+        onClick={onAdd} 
+        className="flex items-center gap-2 px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border border-white/10"
+      >
+        <Plus size={12}/> Add
+      </button>
+    )}
   </div>
 );
 
-const FinalReviewCard = ({ label, value, sub }: any) => (
-  <div className="p-6 bg-white/5 border border-white/10 rounded-[2rem] flex items-center justify-between group hover:border-primary/20 transition-all shadow-lg overflow-hidden">
-    <div className="max-w-[80%] overflow-hidden">
-      <h5 className="text-[9px] font-bold uppercase tracking-[0.3em] text-primary mb-2">{label}</h5>
-      <p className="text-lg font-medium text-white tracking-tight leading-tight mb-1 truncate">{value}</p>
-      <p className="text-white/30 text-xs italic font-light truncate">{sub}</p>
-    </div>
-    <div className="text-primary/10 group-hover:text-primary transition-colors flex-shrink-0"><CheckCircle size={24}/></div>
+const ReviewCard = ({ label, value }: any) => (
+  <div className="p-3 bg-white/5 border border-white/10 rounded-xl">
+    <h5 className="text-[8px] font-bold uppercase tracking-wider text-primary mb-1">{label}</h5>
+    <p className="text-sm font-medium text-white truncate">{value}</p>
   </div>
 );
-
-
-const ProfessionalMilestoneComponent = ({ label, duration, onDurationChange, location, onLocationChange }: any) => {
-  const [startMonth, setStartMonth] = useState('Jan');
-  const [startYear, setStartYear] = useState(new Date().getFullYear().toString());
-  const [endMonth, setEndMonth] = useState('Jan');
-  const [endYear, setEndYear] = useState(new Date().getFullYear().toString());
-  const [isPresent, setIsPresent] = useState(false);
-
-  useEffect(() => {
-    const startStr = `${startMonth} ${startYear}`;
-    const endStr = isPresent ? 'Present' : `${endMonth} ${endYear}`;
-    onDurationChange(`${startStr} - ${endStr}`);
-  }, [startMonth, startYear, endMonth, endYear, isPresent]);
-
-  return (
-    <div className="space-y-3 w-full">
-      <label className="text-[10px] font-bold text-white/20 uppercase tracking-[0.3em] ml-4">{label}</label>
-      <div className="bg-white/[0.02] p-6 rounded-[2rem] border border-white/5 relative overflow-hidden space-y-6">
-        <div className="absolute left-10 top-12 bottom-12 w-[1px] bg-gradient-to-b from-primary/30 to-white/5 z-0" />
-        <div className="flex items-center gap-6 relative z-10">
-          <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0"><MapPin size={16} className="text-primary" /></div>
-          <div className="flex-1"><input type="text" placeholder="Milestone Origin" value={location} onChange={(e) => onLocationChange(e.target.value)} className="w-full bg-transparent border-b border-white/10 text-base font-light py-1 text-white placeholder-white/10 focus:outline-none focus:border-primary/50 transition-all" /></div>
-        </div>
-        <div className="flex items-center gap-6 relative z-10">
-          <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0"><div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_10px_rgba(212,212,170,1)]" /></div>
-          <div className="flex-1 flex gap-3"><DashDropdown value={startMonth} options={MONTHS} onChange={setStartMonth} /><DashDropdown value={startYear} options={YEARS.map(y => y.toString())} onChange={setStartYear} /></div>
-        </div>
-        <div className="flex items-center gap-6 relative z-10">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border transition-all duration-700 ${isPresent ? 'bg-primary border-primary' : 'bg-white/5 border-white/10'}`}><div className={`w-2 h-2 rounded-full transition-all duration-700 ${isPresent ? 'bg-bg-deep' : 'bg-white/10'}`} /></div>
-          <div className="flex-1 flex flex-col gap-3">
-             <div className={`flex gap-3 transition-all duration-500 ${isPresent ? 'opacity-20 grayscale pointer-events-none blur-[1px]' : 'opacity-100'}`}><DashDropdown value={endMonth} options={MONTHS} onChange={setEndMonth} /><DashDropdown value={endYear} options={YEARS.map(y => y.toString())} onChange={setEndYear} /></div>
-             <button onClick={() => setIsPresent(!isPresent)} className={`flex items-center gap-2 self-end text-[9px] font-bold uppercase tracking-[0.1em] transition-all px-4 py-2 rounded-full border ${isPresent ? 'bg-primary/20 border-primary text-primary shadow-sm' : 'bg-white/5 border-white/10 text-white/20 hover:text-white/40'}`}>Ongoing Engagement</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
 
 export default GetStarted;

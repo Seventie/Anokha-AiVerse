@@ -1,4 +1,4 @@
-// frontend/services/apiService.ts - FIXED
+// frontend/services/apiService.ts - IMPROVED
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -19,7 +19,10 @@ class ApiService {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      const url = `${this.baseUrl}${endpoint}`;
+      console.log(`🔵 ${options.method || 'GET'} ${url}`);
+      
+      const response = await fetch(url, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
@@ -27,15 +30,41 @@ class ApiService {
         },
       });
 
+      // Log response status
+      console.log(`📊 Response status: ${response.status}`);
+
       if (!response.ok) {
-        const error = await response.json();
-        return { error: error.detail || 'Request failed' };
+        let errorMessage = 'Request failed';
+        
+        try {
+          const errorData = await response.json();
+          console.error('❌ Error response:', errorData);
+          
+          // Handle 422 validation errors
+          if (response.status === 422 && errorData.detail) {
+            if (Array.isArray(errorData.detail)) {
+              errorMessage = errorData.detail
+                .map((err: any) => `${err.loc.join('.')}: ${err.msg}`)
+                .join(', ');
+            } else {
+              errorMessage = errorData.detail;
+            }
+          } else {
+            errorMessage = errorData.detail || errorData.message || errorMessage;
+          }
+        } catch (e) {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        
+        return { error: errorMessage };
       }
 
       const data = await response.json();
+      console.log('✅ Success response:', data);
       return { data };
-    } catch (error) {
-      return { error: 'Network error occurred' };
+    } catch (error: any) {
+      console.error('❌ Network error:', error);
+      return { error: error.message || 'Network error occurred' };
     }
   }
 
@@ -50,10 +79,8 @@ class ApiService {
     );
 
     if (response.data) {
-      // CHANGED: Use 'access_token' instead of 'auth_token'
       localStorage.setItem('access_token', response.data.access_token);
-      // Keep auth_token for backward compatibility
-      localStorage.setItem('auth_token', response.data.access_token);
+      localStorage.setItem('auth_token', response.data.access_token); // Backward compatibility
     }
 
     return response;
@@ -69,17 +96,14 @@ class ApiService {
     );
 
     if (response.data) {
-      // CHANGED: Use 'access_token' instead of 'auth_token'
       localStorage.setItem('access_token', response.data.access_token);
-      // Keep auth_token for backward compatibility
-      localStorage.setItem('auth_token', response.data.access_token);
+      localStorage.setItem('auth_token', response.data.access_token); // Backward compatibility
     }
 
     return response;
   }
 
   async getCurrentUser() {
-    // CHANGED: Try 'access_token' first, fallback to 'auth_token'
     const token = localStorage.getItem('access_token') || localStorage.getItem('auth_token');
     if (!token) {
       return { error: 'No token found' };
@@ -103,7 +127,7 @@ class ApiService {
     return this.request('/health', { method: 'GET' });
   }
 
-  // NEW: Method to get token for WebSocket
+  // Get token for WebSocket
   getToken(): string | null {
     return localStorage.getItem('access_token') || localStorage.getItem('auth_token');
   }

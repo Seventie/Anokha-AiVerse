@@ -8,24 +8,25 @@ import {
   Menu, X, Sparkles, Target, Zap
 } from 'lucide-react';
 
-// Import dashboard modules
+// Import dashboard modules (REMOVED InterviewModule)
 import DashboardHome from './Dashboard/DashboardHome';
 import RoadmapModule from './Dashboard/RoadmapModule';
 import OpportunitiesModule from './Dashboard/OpportunitiesModule';
 import ResumeModule from './Dashboard/ResumeModule';
 import JournalModule from './Dashboard/JournalModule';
-import InterviewModule from './Dashboard/InterviewModule';
 import SummaryModule from './Dashboard/SummaryModule';
 import ProfileModule from './Dashboard/ProfileModule';
 
 interface DashboardProps {
   user: User;
   onLogout: () => void;
+  onNavigateToInterview: () => void;
 }
 
-type ModuleName = 'home' | 'roadmap' | 'opportunities' | 'resume' | 'journal' | 'interview' | 'summary' | 'profile';
+// REMOVED 'interview' from ModuleName type
+type ModuleName = 'home' | 'roadmap' | 'opportunities' | 'resume' | 'journal' | 'summary' | 'profile';
 
-const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onNavigateToInterview }) => {
   const [activeModule, setActiveModule] = useState<ModuleName>('home');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [agentStatus, setAgentStatus] = useState({
@@ -44,12 +45,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     { id: 'opportunities', name: 'Opportunities', icon: Briefcase, description: 'Jobs & internships', agent: 'Opportunities Scanner' },
     { id: 'resume', name: 'Resume', icon: FileText, description: 'Resume intelligence', agent: 'Resume Optimizer' },
     { id: 'journal', name: 'Journal', icon: BookOpen, description: 'Daily reflections', agent: 'Career Coach' },
-    { id: 'interview', name: 'Interview', icon: Video, description: 'Mock interviews', agent: 'Interview Trainer' },
+    // UPDATED: Interview now navigates externally
+    { id: 'interview', name: 'Interview', icon: Video, description: 'AI Mock Interviews', agent: 'Interview Trainer', isExternal: true },
     { id: 'summary', name: 'Progress', icon: BarChart3, description: 'Weekly insights', agent: 'Progress Tracker' },
     { id: 'profile', name: 'Profile', icon: UserCircle, description: 'Manage account', agent: 'Profile Manager' },
   ];
 
-    useEffect(() => {
+  useEffect(() => {
     // Get token from localStorage
     const token = localStorage.getItem('access_token') || localStorage.getItem('auth_token');
     
@@ -69,7 +71,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       
       ws.onopen = () => {
         console.log('✅ WebSocket connected');
-        // Send initial ping
         ws.send(JSON.stringify({ type: 'ping' }));
       };
       
@@ -98,7 +99,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       console.error('Failed to create WebSocket:', error);
     }
 
-    // Cleanup function
     return () => {
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.close();
@@ -106,11 +106,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     };
   }, []);
 
+  // UPDATED: Handle module navigation
+  const handleModuleClick = (moduleId: string, isExternal?: boolean) => {
+    if (moduleId === 'interview' && isExternal) {
+      // Navigate to external Interview page
+      onNavigateToInterview();
+    } else {
+      // Normal module switching
+      setActiveModule(moduleId as ModuleName);
+    }
+  };
 
+  // UPDATED: Removed interview case
   const renderModule = () => {
     switch (activeModule) {
       case 'home':
-        return <DashboardHome user={user} />;
+        return <DashboardHome user={user} onNavigateToInterview={onNavigateToInterview} />;
       case 'roadmap':
         return <RoadmapModule user={user} />;
       case 'opportunities':
@@ -119,14 +130,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         return <ResumeModule user={user} />;
       case 'journal':
         return <JournalModule user={user} />;
-      case 'interview':
-        return <InterviewModule user={user} />;
+      // REMOVED: case 'interview'
       case 'summary':
         return <SummaryModule user={user} />;
       case 'profile':
         return <ProfileModule user={user} />;
       default:
-        return <DashboardHome user={user} />;
+        return <DashboardHome user={user} onNavigateToInterview={onNavigateToInterview} />;
     }
   };
 
@@ -186,14 +196,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           </div>
         )}
 
-        {/* Navigation */}
+        {/* Navigation - UPDATED */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {modules.map((module) => (
             <button
               key={module.id}
-              onClick={() => setActiveModule(module.id as ModuleName)}
+              onClick={() => handleModuleClick(module.id, module.isExternal)}
               className={`w-full ${sidebarOpen ? 'p-4' : 'p-3'} rounded-2xl transition-all flex items-center gap-4 group ${
-                activeModule === module.id 
+                activeModule === module.id && !module.isExternal
                   ? 'bg-primary/20 text-primary border border-primary/30' 
                   : 'hover:bg-white/5 text-white/60 hover:text-white'
               }`}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import LandingPage from './components/LandingPage';
 import Navbar from './components/Navbar';
@@ -6,9 +5,16 @@ import GetStarted from './components/GetStarted';
 import Login from './components/Login';
 import ForgotPassword from './components/ForgotPassword';
 import Dashboard from './components/Dashboard';
+import InterviewPage from './components/Interview/InterviewPage'; // ← Add this
 import { authService, User } from './services/authService';
 
-type ViewType = 'landing' | 'get-started' | 'login' | 'forgot-password' | 'dashboard';
+type ViewType = 
+  | 'landing' 
+  | 'get-started' 
+  | 'login' 
+  | 'forgot-password' 
+  | 'dashboard'
+  | 'interview'; // ← Add this
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewType>('landing');
@@ -31,7 +37,7 @@ const App: React.FC = () => {
     if (ScrollTrigger) {
       ScrollTrigger.refresh();
     }
-    if (currentView !== 'dashboard') {
+    if (currentView !== 'dashboard' && currentView !== 'interview') {
       window.scrollTo(0, 0);
     }
   }, [currentView]);
@@ -47,9 +53,17 @@ const App: React.FC = () => {
     setCurrentView('landing');
   };
 
+  const handleNavigateToInterview = () => {
+    setCurrentView('interview');
+  };
+
+  const handleBackToDashboard = () => {
+    setCurrentView('dashboard');
+  };
+
   return (
     <div className="relative w-full min-h-screen">
-      {currentView !== 'dashboard' && (
+      {currentView !== 'dashboard' && currentView !== 'interview' && (
         <Navbar 
           onGetStarted={() => setCurrentView('get-started')} 
           onLogin={() => setCurrentView('login')}
@@ -81,7 +95,17 @@ const App: React.FC = () => {
           <ForgotPassword onBackToLogin={() => setCurrentView('login')} />
         )}
         {currentView === 'dashboard' && user && (
-          <Dashboard user={user} onLogout={handleLogout} />
+          <Dashboard 
+            user={user} 
+            onLogout={handleLogout}
+            onNavigateToInterview={handleNavigateToInterview} // ← Add this
+          />
+        )}
+        {currentView === 'interview' && user && (
+          <InterviewPage 
+            user={user}
+            onBack={handleBackToDashboard}
+          />
         )}
       </main>
     </div>

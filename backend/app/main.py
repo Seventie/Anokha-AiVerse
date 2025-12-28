@@ -1,12 +1,14 @@
 # backend/app/main.py
 
-from app.routes import auth, agents, knowledge_graph
+from app.routes import auth, agents, knowledge_graph, interview
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.settings import settings
 from app.config.database import engine
 from app.models.database import Base
 import logging
+from app.routes import resume 
+
 
 import numpy as np
 np.float_ = np.float64
@@ -95,7 +97,9 @@ async def shutdown_event():
 # Include routers
 app.include_router(auth.router)
 app.include_router(agents.router)
-app.include_router(knowledge_graph.router)  # NEW: Knowledge Graph routes
+app.include_router(knowledge_graph.router) 
+app.include_router(interview.router) 
+app.include_router(resume.router) # NEW: Knowledge Graph routes
 
 # Compatibility WebSocket route: support legacy clients connecting to '/ws'
 from app.routes import agents as agents_routes
