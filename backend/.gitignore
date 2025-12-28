@@ -16,3 +16,6 @@ backend/models/**/*.pt
 
 backend/models/piper/
 backend/models/whisper/base.pt
+
+backend/interview_recordings
+backend/interview_audio
