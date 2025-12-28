@@ -1,6 +1,6 @@
-# backend/app/routes/auth.py - FIXED VERSION
+# backend/app/routes/auth.py - ENHANCED WITH BACKGROUND GRAPH SYNC
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.config.database import get_db
 from app.models.database import User, Education, Skill, Project, Experience, Availability, CareerGoal, CareerIntent, PreferredLocation, SkillCategory, SkillLevel
@@ -8,6 +8,7 @@ from app.schemas.user import UserRegister, UserLogin, Token, UserResponse, UserR
 from app.utils.auth import verify_password, get_password_hash, create_access_token, decode_access_token
 from app.services.vector_db import get_vector_db
 from app.services.graph_db import get_graph_db
+from app.services.user_graph_sync import get_user_graph_sync
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uuid
 import logging
@@ -17,9 +18,27 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 security = HTTPBearer()
 
+
+def sync_user_to_graph_background(user_id: str):
+    """Background task to sync user to knowledge graph"""
+    try:
+        from app.config.database import SessionLocal
+        db = SessionLocal()
+        sync_service = get_user_graph_sync()
+        results = sync_service.sync_complete_user(user_id, db)
+        db.close()
+        logger.info(f"✓ Background graph sync completed for user {user_id}: {results}")
+    except Exception as e:
+        logger.error(f"✗ Background graph sync failed for user {user_id}: {e}")
+
+
 @router.post("/register", response_model=UserRegisterResponse)
-async def register(user_data: UserRegister, db: Session = Depends(get_db)):
-    """Register a new user - FIXED VERSION"""
+async def register(
+    user_data: UserRegister, 
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """Register a new user - ENHANCED with background graph sync"""
     
     # Check if user exists
     existing_user = db.query(User).filter(
@@ -62,7 +81,7 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
         )
         db.add(db_edu)
     
-    # Add Skills to SQL and Graph
+    # Add Skills to SQL and Graph (immediate sync for skills)
     for skill_name in user_data.skills.get("technical", []):
         db_skill = Skill(
             user_id=user_id,
@@ -72,7 +91,8 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
             is_confirmed=True
         )
         db.add(db_skill)
-        # Add to knowledge graph (optional, fail gracefully)
+        
+        # Immediate graph sync for skills (lightweight operation)
         try:
             get_graph_db().add_user_skill(user_id, skill_name, level="intermediate")
         except Exception as e:
@@ -90,7 +110,7 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
     
     # Add Projects
     for proj in user_data.projects:
-        if not proj.title:  # Skip empty projects
+        if not proj.title:
             continue
         db_proj = Project(
             user_id=user_id,
@@ -103,7 +123,7 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
         db.add(db_proj)
         db.flush()
         
-        # Add project description to Vector DB (optional, fail gracefully)
+        # Add to vector DB
         if proj.description:
             try:
                 get_vector_db().add_project_context(user_id, db_proj.id, proj.description)
@@ -112,7 +132,7 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
     
     # Add Experience
     for exp in user_data.experience:
-        if not exp.role or not exp.company:  # Skip empty experiences
+        if not exp.role or not exp.company:
             continue
         db_exp = Experience(
             user_id=user_id,
@@ -128,7 +148,6 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
         db.add(db_exp)
         db.flush()
         
-        # Add experience description to Vector DB (optional, fail gracefully)
         if exp.description:
             try:
                 get_vector_db().add_experience_context(user_id, db_exp.id, exp.description)
@@ -153,7 +172,6 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
         )
         db.add(db_avail)
     else:
-        # Default availability
         db_avail = Availability(
             user_id=user_id,
             free_time="2-4 hours",
@@ -169,10 +187,10 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
     )
     db.add(db_goal)
     
-    # Add to knowledge graph (optional, fail gracefully)
+    # Immediate graph sync for user node and target role (lightweight)
     try:
         graph = get_graph_db()
-        if graph.driver:  # Only if graph DB is available
+        if graph.driver:
             graph.create_user_node(user_id, {
                 "name": user_data.fullName,
                 "email": user_data.email,
@@ -183,7 +201,7 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
     except Exception as e:
         logger.warning(f"Failed to add user to graph DB: {e}")
     
-    # Add Career Intent (HIGH PRIORITY for Vector DB)
+    # Add Career Intent
     if user_data.visionStatement:
         db_intent = CareerIntent(
             user_id=user_id,
@@ -192,7 +210,6 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
         )
         db.add(db_intent)
         
-        # Add to Vector DB with high priority (optional, fail gracefully)
         try:
             get_vector_db().add_career_intent(user_id, user_data.visionStatement)
         except Exception as e:
@@ -201,24 +218,27 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
     
+    # ✨ SCHEDULE COMPLETE GRAPH SYNC IN BACKGROUND
+    # This syncs projects, career goals, and other complex relationships
+    background_tasks.add_task(sync_user_to_graph_background, user_id)
+    logger.info(f"📊 Scheduled complete graph sync for user {user_id}")
+    
     # Create access token
     access_token = create_access_token(data={"sub": user_id, "email": user_data.email})
     
     # Get user profile
     user_profile = await get_user_profile(user_id, db)
     
-    # Return user data with token
     return UserRegisterResponse(
         user=user_profile,
         access_token=access_token,
         token_type="bearer"
     )
 
+
 @router.post("/login", response_model=Token)
 async def login(credentials: UserLogin, db: Session = Depends(get_db)):
-    """Login and return JWT token - FIXED VERSION"""
-    
-    # Find user by email
+    """Login and return JWT token"""
     user = db.query(User).filter(User.email == credentials.email).first()
     
     if not user:
@@ -227,17 +247,15 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
             detail="Invalid credentials"
         )
     
-    # Verify password
     if not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
         )
     
-    # Create access token
     access_token = create_access_token(data={"sub": user.id, "email": user.email})
-    
     return {"access_token": access_token, "token_type": "bearer"}
+
 
 @router.get("/me", response_model=UserResponse)
 async def get_current_user(
@@ -245,7 +263,6 @@ async def get_current_user(
     db: Session = Depends(get_db)
 ):
     """Get current user profile"""
-    
     payload = decode_access_token(credentials.credentials)
     if not payload:
         raise HTTPException(
@@ -255,6 +272,7 @@ async def get_current_user(
     
     user_id = payload.get("sub")
     return await get_user_profile(user_id, db)
+
 
 async def get_user_profile(user_id: str, db: Session) -> UserResponse:
     """Helper to get complete user profile"""
@@ -278,8 +296,9 @@ async def get_user_profile(user_id: str, db: Session) -> UserResponse:
         PreferredLocation.user_id == user_id
     ).order_by(PreferredLocation.priority).all()
     
-    # Build response with safe defaults
+    # Build response
     email_username = user.email.split('@')[0] if user.email and '@' in user.email else "user"
+    
     return UserResponse(
         id=user.id,
         email=user.email,

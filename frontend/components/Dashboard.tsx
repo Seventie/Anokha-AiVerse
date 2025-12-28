@@ -49,19 +49,35 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     { id: 'profile', name: 'Profile', icon: UserCircle, description: 'Manage account', agent: 'Profile Manager' },
   ];
 
-  useEffect(() => {
-    // Connect to WebSocket for real-time agent updates (if backend supports it)
-    // For now, gracefully handle connection failure
+    useEffect(() => {
+    // Get token from localStorage
+    const token = localStorage.getItem('access_token') || localStorage.getItem('auth_token');
+    
+    if (!token) {
+      console.warn('No authentication token found. WebSocket will not connect.');
+      return;
+    }
+
+    // Correct WebSocket URL with authentication
+    const wsUrl = `ws://localhost:8000/api/agents/ws?token=${encodeURIComponent(token)}`;
+    console.log('🔌 Connecting WebSocket to:', wsUrl);
+
+    let ws: WebSocket;
+    
     try {
-      const ws = new WebSocket('ws://localhost:8000/ws');
+      ws = new WebSocket(wsUrl);
       
       ws.onopen = () => {
-        console.log('WebSocket connected');
+        console.log('✅ WebSocket connected');
+        // Send initial ping
+        ws.send(JSON.stringify({ type: 'ping' }));
       };
       
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          console.log('📨 Received:', data);
+          
           if (data.type === 'agent_status') {
             setAgentStatus(prev => ({ ...prev, [data.agent]: data.status }));
           }
@@ -71,22 +87,25 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       };
 
       ws.onerror = (error) => {
-        console.warn('WebSocket error (this is normal if backend doesn\'t support WebSocket):', error);
+        console.error('❌ WebSocket error:', error);
       };
 
-      ws.onclose = () => {
-        console.log('WebSocket disconnected');
+      ws.onclose = (event) => {
+        console.log(`🔌 WebSocket closed: Code ${event.code}, Reason: ${event.reason || 'Unknown'}`);
       };
 
-      return () => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.close();
-        }
-      };
     } catch (error) {
-      console.warn('WebSocket not available (this is normal):', error);
+      console.error('Failed to create WebSocket:', error);
     }
+
+    // Cleanup function
+    return () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
   }, []);
+
 
   const renderModule = () => {
     switch (activeModule) {

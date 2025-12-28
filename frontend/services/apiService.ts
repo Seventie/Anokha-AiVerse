@@ -1,4 +1,4 @@
-// frontend/services/apiService.ts
+// frontend/services/apiService.ts - FIXED
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -50,7 +50,9 @@ class ApiService {
     );
 
     if (response.data) {
-      // Store token
+      // CHANGED: Use 'access_token' instead of 'auth_token'
+      localStorage.setItem('access_token', response.data.access_token);
+      // Keep auth_token for backward compatibility
       localStorage.setItem('auth_token', response.data.access_token);
     }
 
@@ -67,7 +69,9 @@ class ApiService {
     );
 
     if (response.data) {
-      // Store token
+      // CHANGED: Use 'access_token' instead of 'auth_token'
+      localStorage.setItem('access_token', response.data.access_token);
+      // Keep auth_token for backward compatibility
       localStorage.setItem('auth_token', response.data.access_token);
     }
 
@@ -75,7 +79,8 @@ class ApiService {
   }
 
   async getCurrentUser() {
-    const token = localStorage.getItem('auth_token');
+    // CHANGED: Try 'access_token' first, fallback to 'auth_token'
+    const token = localStorage.getItem('access_token') || localStorage.getItem('auth_token');
     if (!token) {
       return { error: 'No token found' };
     }
@@ -89,12 +94,18 @@ class ApiService {
   }
 
   logout() {
+    localStorage.removeItem('access_token');
     localStorage.removeItem('auth_token');
   }
 
   // Health check
   async healthCheck() {
     return this.request('/health', { method: 'GET' });
+  }
+
+  // NEW: Method to get token for WebSocket
+  getToken(): string | null {
+    return localStorage.getItem('access_token') || localStorage.getItem('auth_token');
   }
 }
 

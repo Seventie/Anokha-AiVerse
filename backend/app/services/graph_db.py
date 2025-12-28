@@ -1,3 +1,5 @@
+# backend/app/services/graph_db.py - ENHANCED VERSION
+
 from neo4j import GraphDatabase
 from typing import Dict, Any, List, Optional
 from app.config.settings import settings
@@ -8,20 +10,19 @@ logger = logging.getLogger(__name__)
 
 class GraphDBService:
     """
-    Neo4j Knowledge Graph Service
-    Stores relationships: Skills → Roles → Jobs → Gaps → Learning Paths
+    Neo4j Knowledge Graph Service - ENHANCED
+    Supports both legacy methods AND new knowledge graph architecture
     """
 
     def __init__(self):
-        # Connect to Neo4j (direct bolt connection)
         try:
             self.driver = GraphDatabase.driver(
                 settings.NEO4J_URI,
                 auth=(settings.NEO4J_USER, settings.NEO4J_PASSWORD)
             )
-            # Verify connection
             self.driver.verify_connectivity()
             self._initialize_schema()
+            logger.info("✓ Neo4j GraphDB connected successfully")
         except Exception as e:
             logger.warning(f"Neo4j connection failed: {e}. Graph features will be disabled.")
             self.driver = None
@@ -32,31 +33,31 @@ class GraphDBService:
     def _initialize_schema(self):
         """Create indexes and constraints"""
         with self.driver.session() as session:
-            session.run(
-                "CREATE CONSTRAINT IF NOT EXISTS FOR (u:User) REQUIRE u.id IS UNIQUE"
-            )
-            session.run(
-                "CREATE CONSTRAINT IF NOT EXISTS FOR (s:Skill) REQUIRE s.name IS UNIQUE"
-            )
-            session.run(
-                "CREATE CONSTRAINT IF NOT EXISTS FOR (r:Role) REQUIRE r.name IS UNIQUE"
-            )
-            session.run(
-                "CREATE INDEX IF NOT EXISTS FOR (j:Job) ON (j.id)"
-            )
-            logger.info("Graph database schema initialized")
+            # Legacy constraints
+            session.run("CREATE CONSTRAINT IF NOT EXISTS FOR (u:User) REQUIRE u.id IS UNIQUE")
+            session.run("CREATE CONSTRAINT IF NOT EXISTS FOR (s:Skill) REQUIRE s.name IS UNIQUE")
+            session.run("CREATE CONSTRAINT IF NOT EXISTS FOR (r:Role) REQUIRE r.name IS UNIQUE")
+            session.run("CREATE INDEX IF NOT EXISTS FOR (j:Job) ON (j.id)")
+            
+            # New constraints for knowledge graphs
+            session.run("CREATE CONSTRAINT IF NOT EXISTS FOR (jr:JobRole) REQUIRE jr.name IS UNIQUE")
+            session.run("CREATE CONSTRAINT IF NOT EXISTS FOR (res:Resource) REQUIRE res.title IS UNIQUE")
+            session.run("CREATE CONSTRAINT IF NOT EXISTS FOR (p:Project) REQUIRE p.id IS UNIQUE")
+            session.run("CREATE CONSTRAINT IF NOT EXISTS FOR (cg:CareerGoal) REQUIRE cg.id IS UNIQUE")
+            
+            logger.info("✓ Graph database schema initialized")
 
     def close(self):
         if self.driver:
             self.driver.close()
 
     # =========================
-    # USER OPERATIONS
+    # LEGACY USER OPERATIONS (KEEP AS-IS)
     # =========================
     def create_user_node(self, user_id: str, user_data: Dict[str, Any]):
-        """Create user node in graph (gracefully fails if driver unavailable)"""
+        """Create user node in graph"""
         if not self.driver:
-            logger.warning("GraphDB driver not available, skipping user node creation")
+            logger.warning("GraphDB driver not available")
             return
         with self.driver.session() as session:
             session.run(
@@ -72,7 +73,7 @@ class GraphDBService:
             )
 
     # =========================
-    # SKILL OPERATIONS
+    # LEGACY SKILL OPERATIONS (KEEP AS-IS)
     # =========================
     def add_user_skill(
         self,
@@ -82,7 +83,7 @@ class GraphDBService:
         verified: bool = False,
     ):
         if not self.driver:
-            logger.warning("GraphDB driver not available, skipping skill addition")
+            logger.warning("GraphDB driver not available")
             return
         with self.driver.session() as session:
             session.run(
@@ -114,7 +115,7 @@ class GraphDBService:
             return [dict(record) for record in result]
 
     # =========================
-    # ROLE & JOB OPERATIONS
+    # LEGACY ROLE & JOB OPERATIONS (KEEP AS-IS)
     # =========================
     def create_target_role(
         self,
@@ -123,7 +124,7 @@ class GraphDBService:
         target_company: Optional[str] = None,
     ):
         if not self.driver:
-            logger.warning("GraphDB driver not available, skipping role creation")
+            logger.warning("GraphDB driver not available")
             return
         with self.driver.session() as session:
             session.run(
@@ -148,6 +149,8 @@ class GraphDBService:
         user_id: str,
         compatibility_score: float,
     ):
+        if not self.driver:
+            return
         with self.driver.session() as session:
             session.run(
                 """
@@ -185,6 +188,8 @@ class GraphDBService:
             )
 
     def get_skill_gaps_for_job(self, user_id: str, job_id: str) -> List[str]:
+        if not self.driver:
+            return []
         with self.driver.session() as session:
             result = session.run(
                 """
@@ -201,7 +206,7 @@ class GraphDBService:
             return [record["skill"] for record in result]
 
     # =========================
-    # LEARNING PATH OPERATIONS
+    # LEGACY LEARNING PATH OPERATIONS (KEEP AS-IS)
     # =========================
     def create_learning_path(
         self,
@@ -211,6 +216,8 @@ class GraphDBService:
         estimated_hours: int,
         priority: str = "medium",
     ):
+        if not self.driver:
+            return
         with self.driver.session() as session:
             session.run(
                 """
@@ -231,6 +238,8 @@ class GraphDBService:
             )
 
     def update_learning_progress(self, user_id: str, skill: str, progress: int):
+        if not self.driver:
+            return
         with self.driver.session() as session:
             session.run(
                 """
@@ -244,7 +253,7 @@ class GraphDBService:
             )
 
     # =========================
-    # PROJECT OPERATIONS
+    # LEGACY PROJECT OPERATIONS (KEEP AS-IS)
     # =========================
     def add_project_with_skills(
         self,
@@ -253,6 +262,8 @@ class GraphDBService:
         title: str,
         skills_used: List[str],
     ):
+        if not self.driver:
+            return
         with self.driver.session() as session:
             session.run(
                 """
@@ -278,11 +289,13 @@ class GraphDBService:
                 )
 
     # =========================
-    # REASONING / RECOMMENDATION
+    # LEGACY REASONING (KEEP AS-IS)
     # =========================
     def get_recommended_skills(
         self, user_id: str, limit: int = 10
     ) -> List[Dict[str, Any]]:
+        if not self.driver:
+            return []
         with self.driver.session() as session:
             result = session.run(
                 """
@@ -302,9 +315,11 @@ class GraphDBService:
             return [dict(record) for record in result]
 
     # =========================
-    # GRAPH VISUALIZATION
+    # LEGACY VISUALIZATION (KEEP AS-IS)
     # =========================
     def get_career_path_graph(self, user_id: str) -> Dict[str, Any]:
+        if not self.driver:
+            return {"nodes": [], "edges": []}
         with self.driver.session() as session:
             result = session.run(
                 """
@@ -314,21 +329,20 @@ class GraphDBService:
                 """,
                 user_id=user_id,
             )
-
             record = result.single()
             if not record:
                 return {"nodes": [], "edges": []}
-
             return self._format_graph_data(record)
 
     def _format_graph_data(self, record) -> Dict[str, Any]:
-        # Placeholder for frontend graph transformation
         return {"nodes": [], "edges": []}
 
     # =========================
-    # DELETE
+    # LEGACY DELETE (KEEP AS-IS)
     # =========================
     def delete_user_graph(self, user_id: str):
+        if not self.driver:
+            return
         with self.driver.session() as session:
             session.run(
                 """
@@ -340,7 +354,7 @@ class GraphDBService:
 
 
 # =========================
-# LAZY SINGLETON (SAFE)
+# SINGLETON
 # =========================
 _graph_db: Optional[GraphDBService] = None
 
@@ -352,5 +366,5 @@ def get_graph_db() -> GraphDBService:
         _graph_db = GraphDBService()
     return _graph_db
 
-# Export function for lazy loading
+
 graph_db = get_graph_db
