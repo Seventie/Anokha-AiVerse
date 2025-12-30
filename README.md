@@ -13,9 +13,6 @@
 
 ---
 
-[🚀 Quick Start](#-quick-start) •
-[🤖 AI Agents](#-ai-agents) •
-[🖼 Demo](#-screenshots)
 
 </div>
 
