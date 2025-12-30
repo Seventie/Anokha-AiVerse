@@ -9,7 +9,7 @@
 ![Python](https://img.shields.io/badge/python-3.11+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.104-green)
 ![Architecture](https://img.shields.io/badge/architecture-agentic_AI-purple)
-![License](https://img.shields.io/badge/license-MIT-lightgrey)
+
 
 ---
 
