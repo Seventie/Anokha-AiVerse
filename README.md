@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![CareerAI Banner](./docs/images/banner.png)
+![CareerAI Banner](Images/Whisk_8c48828dea189739602491e7850d8817dr.jpeg)
 
 # CareerAI – Automate, Learn, and Grow 🚀
 
