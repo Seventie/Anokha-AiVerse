@@ -46,3 +46,46 @@ backend/models/*.onnx
 backend/models/*.pth
 backend/models/piper/
 backend/models/whisper/
+
+
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.env
+
+# =========================
+# Node / Frontend
+# =========================
+node_modules/
+dist/
+build/
+.vite/
+
+# =========================
+# AI / ML Models (IMPORTANT)
+# =========================
+backend/models/
+**/*.pt
+**/*.onnx
+**/*.bin
+**/*.ckpt
+**/*.h5
+**/*.tflite
+
+# Whisper & Piper specific
+backend/models/whisper/
+backend/models/piper/
+
+# =========================
+# OS / IDE
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
