@@ -33,3 +33,16 @@ Thumbs.db
 **/models/
 **/*.pt
 **/*.onnx
+**/*.pth
+**/*.pkl
+**/*.h5
+**/*.pb
+**/*.tflite
+**/*.joblib
+
+# Backend specific large files
+backend/models/*.pt
+backend/models/*.onnx
+backend/models/*.pth
+backend/models/piper/
+backend/models/whisper/
