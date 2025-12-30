@@ -6,8 +6,11 @@ from app.config.database import get_db
 from app.schemas.interview_schemas import *
 from app.services.interview_service import interview_service
 from app.utils.auth import get_current_user
-from app.models.database import User
-from typing import List
+from app.models.database import (
+    User, Interview, InterviewRound, InterviewConversation, 
+    InterviewEvaluation, InterviewRecording, Skill
+)
+from typing import List, Optional, Dict
 import logging
 import shutil
 from pathlib import Path
@@ -15,6 +18,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/interview", tags=["Interview"])
+
 
 # ==================== INTERVIEW LIFECYCLE ====================
 
@@ -50,8 +54,7 @@ async def create_interview(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# 🔥 FIX: Added missing GET endpoint for fetching interview details
-@router.get("/{interview_id}", response_model=InterviewResponse)
+@router.get("/{interview_id}")
 async def get_interview(
     interview_id: str,
     current_user: User = Depends(get_current_user),
@@ -65,9 +68,9 @@ async def get_interview(
     - Current round information
     - Progress indicators
     """
-    from app.models.database import Interview, InterviewRound
-    
     try:
+        logger.info(f"📥 Fetching interview {interview_id} for user {current_user.id}")
+        
         # Fetch interview
         interview = db.query(Interview).filter(
             Interview.id == interview_id,
@@ -75,40 +78,56 @@ async def get_interview(
         ).first()
         
         if not interview:
+            logger.warning(f"❌ Interview {interview_id} not found")
             raise HTTPException(status_code=404, detail="Interview not found")
         
+        logger.info(f"✅ Found interview: {interview.id}, type: {interview.interview_type}")
+        
         # Get current active round
-        current_round = db.query(InterviewRound).filter(
-            InterviewRound.interview_id == interview_id,
-            InterviewRound.status.in_(["in_progress", "unlocked"])
-        ).order_by(InterviewRound.round_number).first()
+        current_round = None
+        current_round_data = None
+        
+        try:
+            current_round = db.query(InterviewRound).filter(
+                InterviewRound.interview_id == interview_id,
+                InterviewRound.status.in_(["in_progress", "unlocked"])
+            ).order_by(InterviewRound.round_number).first()
+            
+            if current_round:
+                logger.info(f"✅ Found active round: Round {current_round.round_number}")
+                current_round_data = {
+                    "id": str(current_round.id),
+                    "round_number": int(current_round.round_number),
+                    "round_type": str(current_round.round_type),
+                    "difficulty": str(current_round.difficulty),
+                    "status": str(current_round.status)
+                }
+        except Exception as round_error:
+            logger.warning(f"⚠️ Could not fetch round: {round_error}")
         
         # Build response
-        return InterviewResponse(
-            id=interview.id,
-            interview_type=interview.interview_type,
-            company_name=interview.company_name,
-            job_description=interview.job_description,
-            custom_topics=interview.custom_topics,
-            total_rounds=interview.total_rounds,
-            current_round=current_round.round_number if current_round else 0,
-            status=interview.status,
-            created_at=interview.created_at,
-            current_round_data={
-                "id": current_round.id,
-                "round_number": current_round.round_number,
-                "round_type": current_round.round_type,
-                "difficulty": current_round.difficulty,
-                "status": current_round.status,
-                "question": getattr(current_round, 'current_question', None)
-            } if current_round else None
-        )
+        response = {
+            "id": str(interview.id),
+            "user_id": str(interview.user_id),
+            "interview_type": str(interview.interview_type) if interview.interview_type else "company_specific",
+            "company_name": str(interview.company_name) if interview.company_name else None,
+            "job_description": str(interview.job_description) if interview.job_description else None,
+            "custom_topics": interview.custom_topics if interview.custom_topics else [],
+            "total_rounds": int(interview.total_rounds) if interview.total_rounds else 1,
+            "current_round": int(current_round.round_number) if current_round else 0,
+            "status": str(interview.status) if interview.status else "created",
+            "created_at": interview.created_at.isoformat() if hasattr(interview, 'created_at') and interview.created_at else None,
+            "current_round_data": current_round_data
+        }
+        
+        logger.info(f"✅ Returning interview data for {response['id']}")
+        return response
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Get interview error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"❌ Get interview error: {type(e).__name__}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch interview: {str(e)}")
 
 
 @router.post("/{interview_id}/start")
@@ -136,8 +155,6 @@ async def pause_interview(
     db: Session = Depends(get_db)
 ):
     """Pause interview"""
-    from app.models.database import Interview
-    
     interview = db.query(Interview).filter(
         Interview.id == interview_id,
         Interview.user_id == current_user.id
@@ -177,8 +194,6 @@ async def delete_interview(
     db: Session = Depends(get_db)
 ):
     """Delete interview (only if not completed)"""
-    from app.models.database import Interview
-    
     interview = db.query(Interview).filter(
         Interview.id == interview_id,
         Interview.user_id == current_user.id
@@ -205,8 +220,6 @@ async def get_rounds(
     db: Session = Depends(get_db)
 ):
     """Get all rounds for an interview"""
-    from app.models.database import InterviewRound, Interview
-    
     # Verify ownership
     interview = db.query(Interview).filter(
         Interview.id == interview_id,
@@ -308,7 +321,7 @@ async def submit_answer_audio(
     - interview_id
     - round_id
     - question_id
-    - audio: audio file (wav, mp3, m4a)
+    - audio: audio file (wav, mp3, m4a, webm)
     
     Backend will:
     1. Save audio file
@@ -321,6 +334,7 @@ async def submit_answer_audio(
         audio_dir = Path("./interview_audio/answers")
         audio_dir.mkdir(parents=True, exist_ok=True)
 
+        # Determine file extension
         suffix = Path(audio.filename or "").suffix.lower()
         if not suffix:
             content_type = (audio.content_type or "").lower()
@@ -438,13 +452,11 @@ async def get_analytics(
 @router.get("/{interview_id}/conversation")
 async def get_conversation(
     interview_id: str,
-    round_id: str = None,
+    round_id: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get full conversation history for an interview or specific round"""
-    from app.models.database import InterviewConversation, Interview
-    
     # Verify ownership
     interview = db.query(Interview).filter(
         Interview.id == interview_id,
@@ -476,6 +488,240 @@ async def get_conversation(
     ]
 
 
+# ==================== DETAILED RESULTS (NEW) ====================
+
+@router.get("/{interview_id}/detailed-results")
+async def get_detailed_results(
+    interview_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    🔥 Get comprehensive interview results with:
+    - Question-by-question breakdown
+    - Video recording URL
+    - Verdict (Not Selected/Considerate/Positive/Selected)
+    - Skill gaps analysis
+    """
+    try:
+        # Get interview
+        interview = db.query(Interview).filter(
+            Interview.id == interview_id,
+            Interview.user_id == current_user.id
+        ).first()
+        
+        if not interview:
+            raise HTTPException(status_code=404, detail="Interview not found")
+        
+        # Get evaluation
+        evaluation = db.query(InterviewEvaluation).filter(
+            InterviewEvaluation.interview_id == interview_id
+        ).first()
+        
+        if not evaluation:
+            raise HTTPException(status_code=404, detail="Evaluation not found")
+        
+        # Get all rounds
+        rounds = db.query(InterviewRound).filter(
+            InterviewRound.interview_id == interview_id
+        ).order_by(InterviewRound.round_number).all()
+        
+        # Get all conversations (Q&A pairs)
+        conversations = db.query(InterviewConversation).filter(
+            InterviewConversation.interview_id == interview_id
+        ).order_by(InterviewConversation.timestamp).all()
+        
+        # Build question-by-question breakdown
+        qa_breakdown = []
+        current_q = None
+        
+        for conv in conversations:
+            if conv.speaker == "ai":
+                current_q = {
+                    "question_id": conv.id,
+                    "question": conv.message_text,
+                    "category": conv.question_category or "general",
+                    "expected_points": conv.expected_answer_points or [],
+                    "audio_url": conv.audio_url,
+                    "timestamp": conv.timestamp.isoformat(),
+                    "answer": None,
+                    "score": None,
+                    "feedback": None
+                }
+            elif conv.speaker == "user" and current_q:
+                # Use existing score/feedback if available
+                feedback = {
+                    "score": conv.answer_score or 0,
+                    "feedback": "Good answer" if conv.answer_score and conv.answer_score >= 70 else "Needs improvement",
+                    "strengths": [],
+                    "improvements": []
+                }
+                
+                current_q.update({
+                    "answer": conv.message_text,
+                    "answer_audio_url": conv.audio_url,
+                    "score": conv.answer_score or 0,
+                    "confidence": conv.confidence_detected or "medium",
+                    "feedback": feedback.get("feedback", ""),
+                    "strengths": feedback.get("strengths", []),
+                    "improvements": feedback.get("improvements", [])
+                })
+                qa_breakdown.append(current_q)
+                current_q = None
+        
+        # Get recording
+        recording = db.query(InterviewRecording).filter(
+            InterviewRecording.interview_id == interview_id
+        ).first()
+        
+        # Calculate skill gaps
+        skill_gaps = await _analyze_skill_gaps(qa_breakdown, interview, db)
+        
+        # Verdict mapping
+        verdict_map = {
+            "not_selected": {
+                "label": "Not Selected",
+                "color": "red",
+                "icon": "❌",
+                "message": "Keep practicing! Focus on fundamental concepts."
+            },
+            "considerate": {
+                "label": "Under Consideration",
+                "color": "yellow",
+                "icon": "⚠️",
+                "message": "Good foundation, but needs more depth in key areas."
+            },
+            "positive": {
+                "label": "Strong Candidate",
+                "color": "blue",
+                "icon": "✅",
+                "message": "Impressive performance! Minor improvements needed."
+            },
+            "selected": {
+                "label": "Selected",
+                "color": "green",
+                "icon": "🎉",
+                "message": "Excellent! You're ready for real interviews."
+            }
+        }
+        
+        verdict = verdict_map.get(interview.pass_fail_status or "considerate", verdict_map["considerate"])
+        
+        return {
+            "interview": {
+                "id": interview.id,
+                "company_name": interview.company_name,
+                "job_description": interview.job_description,
+                "status": interview.status,
+                "created_at": interview.created_at.isoformat(),
+                "duration_seconds": interview.duration_seconds or 0,
+                "verdict": verdict
+            },
+            "scores": {
+                "overall": evaluation.overall_score or 0,
+                "technical": evaluation.technical_score or 0,
+                "communication": evaluation.communication_score or 0,
+                "problem_solving": evaluation.problem_solving_score or 0,
+                "confidence": evaluation.confidence_score or 0
+            },
+            "rounds": [
+                {
+                    "round_number": r.round_number,
+                    "round_type": r.round_type,
+                    "difficulty": r.difficulty,
+                    "status": r.status,
+                    "score": r.score,
+                    "duration": r.duration_seconds
+                }
+                for r in rounds
+            ],
+            "qa_breakdown": qa_breakdown,
+            "skill_gaps": skill_gaps,
+            "strengths": evaluation.strengths or [],
+            "weaknesses": evaluation.weaknesses or [],
+            "recommendations": evaluation.recommendations or [],
+            "recording": {
+                "video_url": recording.video_url if recording else None,
+                "duration": recording.recording_duration if recording else None
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Detailed results error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Helper function for skill gap analysis
+async def _analyze_skill_gaps(qa_breakdown: List[Dict], interview: Interview, db: Session):
+    """Analyze skill gaps based on performance"""
+    try:
+        # Get user's current skills
+        user_skills = db.query(Skill).filter(
+            Skill.user_id == interview.user_id
+        ).all()
+        
+        user_skill_names = {s.skill.lower() for s in user_skills}
+        
+        # Extract skills mentioned in JD
+        jd = interview.job_description or ""
+        required_skills = []
+        
+        # Simple keyword extraction
+        skill_keywords = [
+            "python", "javascript", "react", "node", "sql", "aws", "docker", "kubernetes",
+            "machine learning", "data structures", "algorithms", "system design", "api",
+            "rest", "graphql", "typescript", "java", "golang", "rust"
+        ]
+        
+        for skill in skill_keywords:
+            if skill in jd.lower():
+                required_skills.append(skill)
+        
+        # Find gaps
+        gaps = []
+        for skill in required_skills:
+            if skill not in user_skill_names:
+                # Check if mentioned in poor-scoring answers
+                poor_answers = [qa for qa in qa_breakdown if (qa.get("score") or 0) < 60]
+                mentioned_in_poor = any(skill in qa.get("question", "").lower() for qa in poor_answers)
+                
+                gaps.append({
+                    "skill": skill.title(),
+                    "severity": "critical" if mentioned_in_poor else "important",
+                    "mentioned_in_jd": True,
+                    "user_has_skill": False,
+                    "recommended_action": f"Learn {skill.title()} fundamentals - Start with online courses"
+                })
+        
+        # Identify weak areas from low scores
+        weak_categories = {}
+        for qa in qa_breakdown:
+            category = qa.get("category", "general")
+            score = qa.get("score", 0)
+            
+            if category not in weak_categories:
+                weak_categories[category] = []
+            weak_categories[category].append(score)
+        
+        for category, scores in weak_categories.items():
+            avg_score = sum(scores) / len(scores) if scores else 0
+            if avg_score < 60:
+                gaps.append({
+                    "skill": category.replace("_", " ").title(),
+                    "severity": "needs_improvement",
+                    "mentioned_in_jd": False,
+                    "user_has_skill": True,
+                    "current_level": f"{avg_score:.0f}/100",
+                    "recommended_action": f"Practice {category.replace('_', ' ')} questions daily"
+                })
+        
+        return gaps
+    except Exception as e:
+        logger.error(f"Skill gap analysis error: {e}")
+        return []
+
+
 # ==================== RECORDING ====================
 
 @router.post("/{interview_id}/recording/upload")
@@ -489,8 +735,6 @@ async def upload_recording(
     Upload video recording of entire interview
     (Client-side recording via MediaRecorder API)
     """
-    from app.models.database import Interview, InterviewRecording
-    
     # Verify ownership
     interview = db.query(Interview).filter(
         Interview.id == interview_id,
@@ -550,8 +794,6 @@ async def get_recording(
     db: Session = Depends(get_db)
 ):
     """Get recording URLs and transcript"""
-    from app.models.database import InterviewRecording, Interview
-    
     # Verify ownership
     interview = db.query(Interview).filter(
         Interview.id == interview_id,
@@ -572,5 +814,5 @@ async def get_recording(
         "video_url": recording.video_url,
         "transcript_text": recording.transcript_text,
         "duration_seconds": recording.recording_duration,
-        "file_size_mb": round(recording.file_size_bytes / (1024 * 1024), 2)
+        "file_size_mb": round(recording.file_size_bytes / (1024 * 1024), 2) if recording.file_size_bytes else 0
     }

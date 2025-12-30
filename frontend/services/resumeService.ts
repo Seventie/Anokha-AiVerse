@@ -1,4 +1,4 @@
-// frontend/services/resumeService.ts - COMPLETE VERSION
+// frontend/src/services/resumeService.ts - COMPLETE FIXED VERSION
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -124,53 +124,85 @@ class ResumeService {
     return { 'Authorization': `Bearer ${token}` };
   }
 
-  // ==================== UPLOAD & PARSE ====================
+  // ==================== UNAUTHENTICATED PARSING (FOR SIGNUP) ====================
 
+  /**
+   * 🔥 Parse resume WITHOUT authentication (for signup flow)
+   * This endpoint doesn't require auth token
+   */
+  async parseResumeUnauthenticated(file: File): Promise<{ message: string; data: ParsedResume }> {
+    try {
+      console.log('📄 Parsing resume (unauthenticated):', file.name);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${API_BASE_URL}/api/resume/parse`, {
+        method: 'POST',
+        body: formData // No auth header!
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Failed to parse resume' }));
+        throw new Error(error.detail || 'Failed to parse resume');
+      }
+
+      const result = await response.json();
+      console.log('✅ Resume parsed successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Resume parsing error:', error);
+      throw error;
+    }
+  }
+
+  // ==================== AUTHENTICATED UPLOAD & PARSE ====================
+
+  /**
+   * Upload resume WITH authentication (after login)
+   * This saves the resume to the user's account
+   */
   async uploadResume(
     file: File, 
     jobDescription?: string
   ): Promise<{ message: string; resume_id: string; data: ParsedResume }> {
-    const formData = new FormData();
-    formData.append('file', file);
-    if (jobDescription) {
-      formData.append('jd_text', jobDescription);
+    try {
+      console.log('📤 Uploading resume (authenticated):', file.name);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      if (jobDescription) {
+        formData.append('jd_text', jobDescription);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/resume/upload`, {
+        method: 'POST',
+        headers: this.getAuthHeader(),
+        body: formData
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Failed to upload resume' }));
+        throw new Error(error.detail || 'Failed to upload resume');
+      }
+
+      const result = await response.json();
+      console.log('✅ Resume uploaded successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Resume upload error:', error);
+      throw error;
     }
-
-    const response = await fetch(`${API_BASE_URL}/api/resume/upload`, {
-      method: 'POST',
-      headers: this.getAuthHeader(),
-      body: formData
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to upload resume');
-    }
-
-    return response.json();
   }
 
+  /**
+   * @deprecated Use parseResumeUnauthenticated for signup or uploadResume for authenticated users
+   */
   async parseResume(
     file: File, 
     jobDescription?: string
   ): Promise<{ message: string; data: ParsedResume }> {
-    const formData = new FormData();
-    formData.append('file', file);
-    if (jobDescription) {
-      formData.append('jd_text', jobDescription);
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/resume/parse`, {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to parse resume');
-    }
-
-    return response.json();
+    return this.parseResumeUnauthenticated(file);
   }
 
   // ==================== ANALYSIS ====================
@@ -178,50 +210,56 @@ class ResumeService {
   async analyzeCurrentResume(
     jdText?: string
   ): Promise<{ success: boolean; data: ResumeAnalysis }> {
-    const headers = {
-      ...this.getAuthHeader(),
-      'Content-Type': 'application/json'
-    };
+    try {
+      const headers: HeadersInit = {
+        ...this.getAuthHeader(),
+        'Content-Type': 'application/json'
+      };
 
-    const body = jdText ? JSON.stringify({ jd_text: jdText }) : undefined;
+      const response = await fetch(`${API_BASE_URL}/api/resume/analyze`, {
+        method: 'POST',
+        headers,
+        body: jdText ? JSON.stringify({ jd_text: jdText }) : undefined
+      });
 
-    const response = await fetch(`${API_BASE_URL}/api/resume/analyze`, {
-      method: 'POST',
-      headers,
-      body
-    });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Failed to analyze resume' }));
+        throw new Error(error.detail || 'Failed to analyze resume');
+      }
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to analyze resume');
+      return response.json();
+    } catch (error) {
+      console.error('❌ Resume analysis error:', error);
+      throw error;
     }
-
-    return response.json();
   }
 
   async analyzeResume(
     resumeId: string, 
     jdText?: string
   ): Promise<{ success: boolean; data: ResumeAnalysis }> {
-    const headers = {
-      ...this.getAuthHeader(),
-      'Content-Type': 'application/json'
-    };
+    try {
+      const headers: HeadersInit = {
+        ...this.getAuthHeader(),
+        'Content-Type': 'application/json'
+      };
 
-    const body = jdText ? JSON.stringify({ jd_text: jdText }) : undefined;
+      const response = await fetch(`${API_BASE_URL}/api/resume/${resumeId}/analyze`, {
+        method: 'POST',
+        headers,
+        body: jdText ? JSON.stringify({ jd_text: jdText }) : undefined
+      });
 
-    const response = await fetch(`${API_BASE_URL}/api/resume/${resumeId}/analyze`, {
-      method: 'POST',
-      headers,
-      body
-    });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Failed to analyze resume' }));
+        throw new Error(error.detail || 'Failed to analyze resume');
+      }
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to analyze resume');
+      return response.json();
+    } catch (error) {
+      console.error('❌ Resume analysis error:', error);
+      throw error;
     }
-
-    return response.json();
   }
 
   async analyzeUploadedResume(
@@ -232,109 +270,139 @@ class ResumeService {
     parsed_data: ParsedResume; 
     analysis: ResumeAnalysis 
   }> {
-    const formData = new FormData();
-    formData.append('file', file);
-    if (jdText) {
-      formData.append('jd_text', jdText);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (jdText) {
+        formData.append('jd_text', jdText);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/resume/analyze-uploaded`, {
+        method: 'POST',
+        headers: this.getAuthHeader(),
+        body: formData
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Failed to analyze resume' }));
+        throw new Error(error.detail || 'Failed to analyze resume');
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error('❌ Resume analysis error:', error);
+      throw error;
     }
-
-    const response = await fetch(`${API_BASE_URL}/api/resume/analyze-uploaded`, {
-      method: 'POST',
-      headers: this.getAuthHeader(),
-      body: formData
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to analyze resume');
-    }
-
-    return response.json();
   }
 
   // ==================== RETRIEVAL ====================
 
   async getCurrentResume(): Promise<ResumeData | null> {
-    const response = await fetch(`${API_BASE_URL}/api/resume/current`, {
-      headers: {
-        ...this.getAuthHeader(),
-        'Content-Type': 'application/json'
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/resume/current`, {
+        headers: {
+          ...this.getAuthHeader(),
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.status === 404) {
+        return null;
       }
-    });
 
-    if (response.status === 404) {
-      return null;
+      if (!response.ok) {
+        throw new Error('Failed to fetch resume');
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error('❌ Get current resume error:', error);
+      throw error;
     }
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch resume');
-    }
-
-    return response.json();
   }
 
   async getResumeHistory(): Promise<ResumeHistoryItem[]> {
-    const response = await fetch(`${API_BASE_URL}/api/resume/history`, {
-      headers: {
-        ...this.getAuthHeader(),
-        'Content-Type': 'application/json'
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/resume/history`, {
+        headers: {
+          ...this.getAuthHeader(),
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch history');
       }
-    });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch history');
+      return response.json();
+    } catch (error) {
+      console.error('❌ Get resume history error:', error);
+      throw error;
     }
-
-    return response.json();
   }
 
   async getAllResumes(): Promise<ResumeData[]> {
-    const history = await this.getResumeHistory();
-    return history.map(item => ({
-      id: item.id,
-      resume_id: item.id,
-      filename: item.filename,
-      uploaded_at: item.uploaded_at,
-      is_active: item.is_active,
-      match_score: item.match_score || 0,
-      parsed_data: {} as ParsedResume // Will be loaded on demand
-    }));
+    try {
+      const history = await this.getResumeHistory();
+      return history.map(item => ({
+        id: item.id,
+        resume_id: item.id,
+        filename: item.filename,
+        uploaded_at: item.uploaded_at,
+        is_active: item.is_active,
+        match_score: item.match_score || 0,
+        parsed_data: {} as ParsedResume // Will be loaded on demand
+      }));
+    } catch (error) {
+      console.error('❌ Get all resumes error:', error);
+      throw error;
+    }
   }
 
   // ==================== MANAGEMENT ====================
 
   async setActiveResume(resumeId: string): Promise<{ message: string }> {
-    const response = await fetch(`${API_BASE_URL}/api/resume/${resumeId}/set-active`, {
-      method: 'PATCH',
-      headers: {
-        ...this.getAuthHeader(),
-        'Content-Type': 'application/json'
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/resume/${resumeId}/set-active`, {
+        method: 'PATCH',
+        headers: {
+          ...this.getAuthHeader(),
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Failed to set active resume' }));
+        throw new Error(error.detail || 'Failed to set active resume');
       }
-    });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to set active resume');
+      return response.json();
+    } catch (error) {
+      console.error('❌ Set active resume error:', error);
+      throw error;
     }
-
-    return response.json();
   }
 
   async deleteResume(resumeId: string): Promise<{ message: string }> {
-    const response = await fetch(`${API_BASE_URL}/api/resume/${resumeId}`, {
-      method: 'DELETE',
-      headers: {
-        ...this.getAuthHeader(),
-        'Content-Type': 'application/json'
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/resume/${resumeId}`, {
+        method: 'DELETE',
+        headers: {
+          ...this.getAuthHeader(),
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Failed to delete resume' }));
+        throw new Error(error.detail || 'Failed to delete resume');
       }
-    });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to delete resume');
+      return response.json();
+    } catch (error) {
+      console.error('❌ Delete resume error:', error);
+      throw error;
     }
-
-    return response.json();
   }
 }
 

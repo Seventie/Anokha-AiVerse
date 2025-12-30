@@ -1,5 +1,7 @@
+# backend/app/schemas/interview_schemas.py
+
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from datetime import datetime
 
 # ========== INTERVIEW SETUP ==========
@@ -10,6 +12,7 @@ class InterviewCreate(BaseModel):
     custom_topics: Optional[List[str]] = None
     total_rounds: int = 1
     round_configs: List[Dict[str, Any]]  # [{"type": "technical", "difficulty": "medium"}]
+
 
 class InterviewResponse(BaseModel):
     id: str
@@ -24,6 +27,7 @@ class InterviewResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 # ========== ROUND MANAGEMENT ==========
 class RoundResponse(BaseModel):
     id: str
@@ -37,27 +41,31 @@ class RoundResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 # ========== CONVERSATION ==========
 class QuestionResponse(BaseModel):
-    question_id: int
+    question_id: int  # ✅ This matches InterviewConversation.id (Integer autoincrement)
     question_text: str
     category: str
     what_to_look_for: List[str]
     audio_url: Optional[str] = None
 
+
 class AnswerSubmit(BaseModel):
     interview_id: str
     round_id: str
-    question_id: int
+    question_id: int  # ✅ This is correct (matches conversation.id)
     answer_text: str
     audio_url: Optional[str] = None
+
 
 class AnswerFeedback(BaseModel):
     score: float
     feedback: str
     strengths: List[str]
     improvements: List[str]
-    next_question: Optional[QuestionResponse]
+    next_question: Optional[QuestionResponse] = None  # ✅ Made optional explicitly
+
 
 # ========== EVALUATION ==========
 class EvaluationResponse(BaseModel):
@@ -72,6 +80,7 @@ class EvaluationResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
 
 # ========== ANALYTICS ==========
 class InterviewHistoryItem(BaseModel):

@@ -1,10 +1,12 @@
 # backend/app/schemas/user.py
 
-from pydantic import BaseModel, EmailStr, Field
-from typing import List, Optional
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic.alias_generators import to_camel
+from typing import List, Optional, Dict
 from datetime import datetime
 
-# Base schemas
+
+# Base schemas with camelCase aliases for API
 class EducationBase(BaseModel):
     institution: str
     degree: str
@@ -15,59 +17,53 @@ class EducationBase(BaseModel):
     end_date: Optional[str] = None
     grade: Optional[str] = None
 
-class EducationCreate(EducationBase):
-    pass
 
-class EducationResponse(BaseModel):
+class EducationCreate(EducationBase):
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class EducationResponse(EducationBase):
     id: int
-    institution: str
-    degree: str
-    major: Optional[str] = None
-    location: Optional[str] = None
-    duration: str
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
-    grade: Optional[str] = None
     is_confirmed: bool
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
 
 class SkillBase(BaseModel):
     skill: str
     category: str = "technical"
     level: str = "intermediate"
 
+
 class SkillCreate(SkillBase):
     pass
+
 
 class SkillResponse(SkillBase):
     id: int
     verified: bool
     is_confirmed: bool
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
 
 class ProjectBase(BaseModel):
     title: str
     description: str = ""
-    techStack: str = ""
+    tech_stack: str = Field(default="", alias="techStack")
     link: Optional[str] = None
+
 
 class ProjectCreate(ProjectBase):
-    pass
+    model_config = ConfigDict(populate_by_name=True)
 
-class ProjectResponse(BaseModel):
+
+class ProjectResponse(ProjectBase):
     id: int
-    title: str
-    description: str = ""
-    techStack: str = Field(default="")
-    link: Optional[str] = None
     is_confirmed: bool
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True, alias_generator=to_camel)
+
 
 class ExperienceBase(BaseModel):
     role: str
@@ -78,80 +74,80 @@ class ExperienceBase(BaseModel):
     start_date: Optional[str] = None
     end_date: Optional[str] = None
 
-class ExperienceCreate(ExperienceBase):
-    pass
 
-class ExperienceResponse(BaseModel):
+class ExperienceCreate(ExperienceBase):
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ExperienceResponse(ExperienceBase):
     id: int
-    role: str
-    company: str
-    location: Optional[str] = None
-    duration: str = ""
-    description: str = ""
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
     is_confirmed: bool
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
 
 class AvailabilityBase(BaseModel):
-    freeTime: str
-    studyDays: List[str]
+    free_time: str = Field(alias="freeTime")
+    study_days: List[str] = Field(default_factory=list, alias="studyDays")
+
 
 class AvailabilityCreate(AvailabilityBase):
-    pass
+    model_config = ConfigDict(populate_by_name=True)
 
-class AvailabilityResponse(BaseModel):
+
+class AvailabilityResponse(AvailabilityBase):
     id: int
-    freeTime: str
-    studyDays: List[str]
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
 
 # User Registration
 class UserRegister(BaseModel):
     email: EmailStr
     username: str
     password: str
-    fullName: str
+    full_name: str
     location: Optional[str] = None
-    preferredLocations: List[str] = []
-    currentStatus: Optional[str] = "Working Professional"
-    fieldOfInterest: Optional[str] = "Software Engineering"
-    education: List[EducationCreate] = []
-    experience: List[ExperienceCreate] = []
-    projects: List[ProjectCreate] = []
-    skills: Optional[dict] = Field(default_factory=lambda: {"technical": [], "soft": []})  # {technical: [], soft: []}
-    availability: Optional[AvailabilityCreate] = None
-    targetRole: Optional[str] = "Software Engineer"
-    timeline: Optional[str] = "6 Months"
-    visionStatement: Optional[str] = ""
+    preferred_locations: List[str] = Field(default_factory=list, alias="preferredLocations")
+    current_status: Optional[str] = Field(default="Working Professional", alias="currentStatus")
+    field_of_interest: Optional[str] = Field(default="Software Engineering", alias="fieldOfInterest")
+    education: List[EducationCreate] = Field(default_factory=list)
+    experience: List[ExperienceCreate] = Field(default_factory=list)
+    projects: List[ProjectCreate] = Field(default_factory=list)
+    skills: Optional[Dict[str, List[str]]] = Field(default_factory=lambda: {"technical": [], "soft": []})
+    availability: AvailabilityCreate
+    target_role: Optional[str] = Field(default="Software Engineer", alias="targetRole")
+    timeline: Optional[str] = Field(default="6 Months")
+    vision_statement: Optional[str] = Field(default="", alias="visionStatement")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
 
 # User Login
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+
 # Token Response
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
-# User Response
+
+# User Response (returns camelCase to frontend)
 class UserResponse(BaseModel):
     id: str
     email: str
     username: str
-    fullName: str
+    full_name: str = Field(alias="fullName")
     location: Optional[str] = Field(default="")
-    preferredLocations: List[str] = Field(default_factory=list)
-    currentStatus: str = Field(default="beginner")
-    fieldOfInterest: str = Field(default="Software Engineering")
-    targetRole: str = Field(default="Software Engineer")
+    preferred_locations: List[str] = Field(default_factory=list, alias="preferredLocations")
+    current_status: str = Field(default="beginner", alias="currentStatus")
+    field_of_interest: str = Field(default="Software Engineering", alias="fieldOfInterest")
+    target_role: str = Field(default="Software Engineer", alias="targetRole")
     timeline: str = Field(default="6 Months")
-    visionStatement: str = Field(default="")
+    vision_statement: str = Field(default="", alias="visionStatement")
     readiness_level: str = Field(default="beginner")
     is_demo: bool = Field(default=False)
     created_at: datetime
@@ -162,8 +158,8 @@ class UserResponse(BaseModel):
     experience: List[ExperienceResponse] = Field(default_factory=list)
     availability: Optional[AvailabilityResponse] = Field(default=None)
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
 
 # Registration Response (includes token)
 class UserRegisterResponse(BaseModel):
@@ -171,8 +167,11 @@ class UserRegisterResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
+
 # Resume Upload
 class ResumeUpload(BaseModel):
-    resumeText: str
-    fileName: Optional[str] = None
-    fileType: Optional[str] = None
+    resume_text: str = Field(alias="resumeText")
+    file_name: Optional[str] = Field(default=None, alias="fileName")
+    file_type: Optional[str] = Field(default=None, alias="fileType")
+    
+    model_config = ConfigDict(populate_by_name=True)

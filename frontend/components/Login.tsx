@@ -1,3 +1,5 @@
+// frontend/src/pages/Login.tsx
+
 import React, { useEffect, useState } from 'react';
 import { authService, User } from '../services/authService';
 import { Sparkles, ShieldCheck, ArrowRight, UserCheck, Loader2 } from 'lucide-react';
@@ -44,13 +46,24 @@ const Login: React.FC<LoginProps> = ({ onForgotPassword, onSignUp, onDashboard }
     setError('');
 
     try {
-      const user = await authService.login(email, password);
-      if (user) {
-        onDashboard(user);
+      console.log('🔐 Attempting login with:', email);
+      
+      const response = await authService.login(email, password);
+      
+      if (response.error) {
+        console.error('❌ Login failed:', response.error);
+        setError(response.error);
+        return;
+      }
+      
+      if (response.user) {
+        console.log('✅ Login successful:', response.user);
+        onDashboard(response.user);
       } else {
-        setError('Invalid access credentials provided.');
+        setError('Invalid credentials. Please try again.');
       }
     } catch (err: any) {
+      console.error('❌ Login exception:', err);
       setError(err.message || 'Login failed. Please try again.');
     } finally {
       setIsLoggingIn(false);
@@ -62,13 +75,24 @@ const Login: React.FC<LoginProps> = ({ onForgotPassword, onSignUp, onDashboard }
     setError('');
 
     try {
-      const user = await authService.login('demo@adviceguide.ai', 'demo');
-      if (user) {
-        onDashboard(user);
+      console.log('🎭 Attempting demo login...');
+      
+      const response = await authService.login('demo@adviceguide.ai', 'demo');
+      
+      if (response.error) {
+        console.error('❌ Demo login failed:', response.error);
+        setError(response.error);
+        return;
+      }
+      
+      if (response.user) {
+        console.log('✅ Demo login successful:', response.user);
+        onDashboard(response.user);
       } else {
-        setError('Demo user not available. Please check backend.');
+        setError('Demo user not available. Please contact support.');
       }
     } catch (err: any) {
+      console.error('❌ Demo login exception:', err);
       setError(err.message || 'Demo login failed.');
     } finally {
       setIsDemoLogin(false);
@@ -87,8 +111,9 @@ const Login: React.FC<LoginProps> = ({ onForgotPassword, onSignUp, onDashboard }
             Secure <span className="text-primary font-serif italic">Login</span>
           </h1>
           {error && (
-            <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-sm max-w-md">
-              {error}
+            <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-sm max-w-md flex items-start gap-3">
+              <span className="text-red-400">⚠️</span>
+              <span className="flex-1">{error}</span>
             </div>
           )}
         </div>
@@ -141,8 +166,20 @@ const Login: React.FC<LoginProps> = ({ onForgotPassword, onSignUp, onDashboard }
                 />
                 
                 <div className="flex justify-between items-center px-2">
-                   <button type="button" onClick={onForgotPassword} className="text-[10px] font-bold text-white/75 hover:text-white uppercase tracking-[0.2em] transition-all">Recover Protocol?</button>
-                   <button type="button" onClick={onSignUp} className="text-[10px] font-bold text-primary hover:text-white uppercase tracking-[0.2em] transition-all">New Identity</button>
+                   <button 
+                     type="button" 
+                     onClick={onForgotPassword} 
+                     className="text-[10px] font-bold text-white/75 hover:text-white uppercase tracking-[0.2em] transition-all"
+                   >
+                     Recover Protocol?
+                   </button>
+                   <button 
+                     type="button" 
+                     onClick={onSignUp} 
+                     className="text-[10px] font-bold text-primary hover:text-white uppercase tracking-[0.2em] transition-all"
+                   >
+                     New Identity
+                   </button>
                 </div>
 
                 <button 
@@ -173,7 +210,9 @@ const Login: React.FC<LoginProps> = ({ onForgotPassword, onSignUp, onDashboard }
 
 const FormInput = ({ label, placeholder, icon, type = "text", value, onChange }: any) => (
   <div className="space-y-4 group/field">
-    <label className="text-[10px] font-bold text-white/75 uppercase tracking-[0.4em] ml-2 group-focus-within/field:text-primary transition-colors">{label}</label>
+    <label className="text-[10px] font-bold text-white/75 uppercase tracking-[0.4em] ml-2 group-focus-within/field:text-primary transition-colors">
+      {label}
+    </label>
     <div className="relative">
       <div className="absolute inset-y-0 left-0 pl-8 flex items-center pointer-events-none text-white/40 group-focus-within/field:text-primary z-10 transition-colors">
         <span className="material-symbols-outlined text-[24px]">{icon}</span>

@@ -185,10 +185,10 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
   setError('');
 
   try {
-    console.log('📄 Uploading and parsing resume...');
+    console.log('📄 Parsing resume (no auth required)...');
     
-    // ✅ ACTUAL BACKEND CALL - Upload to resume parser
-    const result = await resumeService.uploadResume(file);
+    // ✅ USE UNAUTHENTICATED PARSE (no token needed during signup)
+    const result = await resumeService.parseResumeUnauthenticated(file);
     
     console.log('✅ Resume parsed:', result.data);
 
@@ -258,6 +258,7 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
 };
 
 
+
   const handleFinalize = async () => {
   setIsRegistering(true);
   setError('');
@@ -269,13 +270,13 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
       email: formData.email.trim(),
       username: formData.username.trim(),
       password: formData.password,
-      fullName: formData.fullName.trim() || formData.username.trim(),
+      full_name: formData.fullName.trim() || formData.username.trim(),
       
       // Optional fields with defaults
       location: formData.location?.trim() || null,
-      preferredLocations: Array.isArray(formData.preferredLocations) ? formData.preferredLocations : [],
-      currentStatus: formData.currentStatus || "Working Professional",
-      fieldOfInterest: formData.fieldOfInterest || "Software Engineering",
+      preferred_locations: Array.isArray(formData.preferredLocations) ? formData.preferredLocations : [],
+      current_status: formData.currentStatus || "Working Professional",
+      field_of_interest: formData.fieldOfInterest || "Software Engineering",
       
       // Education: Filter empty + match EducationCreate schema
       education: formData.education
@@ -310,7 +311,7 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
         .map((proj: any) => ({
           title: proj.title.trim(),
           description: proj.description?.trim() || "",
-          techStack: proj.techStack?.trim() || "",
+          tech_stack: proj.techStack?.trim() || "",
           link: null
         })),
       
@@ -320,16 +321,19 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
         soft: Array.isArray(formData.skills?.soft) ? formData.skills.soft : []
       },
       
-      // Availability: Match AvailabilityCreate schema or null
+      // Availability: Keep camelCase to match backend schema
       availability: formData.availability?.freeTime ? {
-        freeTime: formData.availability.freeTime || "2-4 hours",
-        studyDays: Array.isArray(formData.availability.studyDays) ? formData.availability.studyDays : []
-      } : null,
+        freeTime: formData.availability.freeTime || "2-4 hours",  // ✅ KEPT CAMELCASE
+        studyDays: Array.isArray(formData.availability.studyDays) ? formData.availability.studyDays : []  // ✅ KEPT CAMELCASE
+      } : {
+        freeTime: "2-4 hours",  // ✅ DEFAULT VALUE
+        studyDays: []  // ✅ DEFAULT VALUE
+      },
       
       // Career goals
-      targetRole: formData.targetRole || "Software Engineer",
+      target_role: formData.targetRole || "Software Engineer",
       timeline: formData.timeline || "6 Months",
-      visionStatement: formData.visionStatement?.trim() || ""
+      vision_statement: formData.visionStatement?.trim() || ""
     };
 
     console.log('📤 Sending registration data:', JSON.stringify(registrationData, null, 2));
@@ -359,6 +363,7 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
     setIsRegistering(false);
   }
 };
+
 
 
 
@@ -445,7 +450,7 @@ const GetStarted: React.FC<GetStartedProps> = ({ onLogin, onSuccess }) => {
             {step === 2 && (
               <StepLayout title="Basic Info" subtitle="Tell us about yourself" icon={<UserIcon size={24} />}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <DashInput label="Full Name" value={formData.fullName} onChange={(v: string) => setFormData({...formData, fullName: v})} placeholder="John Doe" />
+                  <DashInput label="Full Name" value={formData.full_name} onChange={(v: string) => setFormData({...formData, full_name: v})} placeholder="John Doe" />
                   <div className="relative">
                     <label className="text-[9px] font-bold text-white/30 uppercase tracking-wider ml-3 block mb-2">Current Location</label>
                     <div className="relative">

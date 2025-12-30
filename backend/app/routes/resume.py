@@ -93,7 +93,7 @@ async def upload_resume(
             file_path=str(file_path),
             file_size=os.path.getsize(file_path),
             parsed_data=parsed_data,
-            full_name=parsed_data.get("personal_info", {}).get("fullName"),
+            full_name=parsed_data.get("personal_info", {}).get("full_name"),
             email=parsed_data.get("personal_info", {}).get("email"),
             phone=parsed_data.get("personal_info", {}).get("phone"),
             technical_skills=parsed_data.get("skills", {}).get("technical", []),
@@ -122,10 +122,14 @@ async def upload_resume(
             file_path.unlink()
         raise HTTPException(500, f"Failed to parse resume: {str(e)}")
 
+# backend/app/routes/resume.py
+
+from typing import Dict, Any, Optional  # Add Optional
+
 @router.post("/parse")
 async def parse_resume_public(
     file: UploadFile = File(...),
-    jd_text: str = None
+    jd_text: Optional[str] = None  # ✅ Changed from str = None
 ) -> Dict[str, Any]:
     """
     📄 Parse a resume without authentication
@@ -166,6 +170,7 @@ async def parse_resume_public(
                 temp_path.unlink()
         except Exception:
             pass
+
 
 # ==================== ANALYSIS ENDPOINTS ====================
 

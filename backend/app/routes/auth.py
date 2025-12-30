@@ -74,9 +74,9 @@ async def register(
             major=edu.major,
             location=edu.location,
             duration=edu.duration,
-            start_date=getattr(edu, 'start_date', None),
-            end_date=getattr(edu, 'end_date', None),
-            grade=getattr(edu, 'grade', None),
+            start_date=edu.start_date,
+            end_date=edu.end_date,
+            grade=edu.grade,
             is_confirmed=True
         )
         db.add(db_edu)
@@ -116,8 +116,8 @@ async def register(
             user_id=user_id,
             title=proj.title,
             description=proj.description or "",
-            tech_stack=proj.techStack or "",
-            link=getattr(proj, 'link', None),
+            tech_stack=proj.tech_stack or "",
+            link=proj.link,
             is_confirmed=True
         )
         db.add(db_proj)
@@ -141,8 +141,8 @@ async def register(
             location=exp.location or "",
             duration=exp.duration or "",
             description=exp.description or "",
-            start_date=getattr(exp, 'start_date', None),
-            end_date=getattr(exp, 'end_date', None),
+            start_date=exp.start_date,
+            end_date=exp.end_date,
             is_confirmed=True
         )
         db.add(db_exp)
@@ -155,7 +155,7 @@ async def register(
                 logger.warning(f"Failed to add experience to vector DB: {e}")
     
     # Add Preferred Locations
-    for idx, loc in enumerate(user_data.preferredLocations):
+    for idx, loc in enumerate(user_data.preferred_locations):
         db_loc = PreferredLocation(
             user_id=user_id,
             location=loc,
@@ -163,26 +163,18 @@ async def register(
         )
         db.add(db_loc)
     
-    # Add Availability
-    if user_data.availability:
-        db_avail = Availability(
-            user_id=user_id,
-            free_time=user_data.availability.freeTime or "2-4 hours",
-            study_days=user_data.availability.studyDays or []
-        )
-        db.add(db_avail)
-    else:
-        db_avail = Availability(
-            user_id=user_id,
-            free_time="2-4 hours",
-            study_days=[]
-        )
-        db.add(db_avail)
+    # Add Availability (always present now due to schema)
+    db_avail = Availability(
+        user_id=user_id,
+        free_time=user_data.availability.free_time,
+        study_days=user_data.availability.study_days
+    )
+    db.add(db_avail)
     
     # Add Career Goals
     db_goal = CareerGoal(
         user_id=user_id,
-        target_roles=[user_data.targetRole] if user_data.targetRole else ["Software Engineer"],
+        target_roles=[user_data.target_role] if user_data.target_role else ["Software Engineer"],
         target_timeline=user_data.timeline or "6 Months"
     )
     db.add(db_goal)
@@ -194,32 +186,31 @@ async def register(
             graph.create_user_node(user_id, {
                 "name": user_data.full_name,
                 "email": user_data.email,
-                "target_role": user_data.targetRole or "Software Engineer"
+                "target_role": user_data.target_role or "Software Engineer"
             })
-            if user_data.targetRole:
-                graph.create_target_role(user_id, user_data.targetRole)
+            if user_data.target_role:
+                graph.create_target_role(user_id, user_data.target_role)
     except Exception as e:
         logger.warning(f"Failed to add user to graph DB: {e}")
     
     # Add Career Intent
-    if user_data.visionStatement:
+    if user_data.vision_statement:
         db_intent = CareerIntent(
             user_id=user_id,
-            intent_text=user_data.visionStatement,
+            intent_text=user_data.vision_statement,
             is_confirmed=True
         )
         db.add(db_intent)
         
         try:
-            get_vector_db().add_career_intent(user_id, user_data.visionStatement)
+            get_vector_db().add_career_intent(user_id, user_data.vision_statement)
         except Exception as e:
             logger.warning(f"Failed to add career intent to vector DB: {e}")
     
     db.commit()
     db.refresh(db_user)
     
-    # ✨ SCHEDULE COMPLETE GRAPH SYNC IN BACKGROUND
-    # This syncs projects, career goals, and other complex relationships
+    # Schedule complete graph sync in background
     background_tasks.add_task(sync_user_to_graph_background, user_id)
     logger.info(f"📊 Scheduled complete graph sync for user {user_id}")
     
@@ -303,14 +294,14 @@ async def get_user_profile(user_id: str, db: Session) -> UserResponse:
         id=user.id,
         email=user.email,
         username=user.username or email_username,
-        fullName=user.full_name or email_username.title(),
+        full_name=user.full_name or email_username.title(),
         location=user.location or "",
-        preferredLocations=[loc.location for loc in preferred_locs] if preferred_locs else [],
-        currentStatus=user.readiness_level.value if user.readiness_level else "beginner",
-        fieldOfInterest="Software Engineering",
-        targetRole=career_goals.target_roles[0] if career_goals and career_goals.target_roles and len(career_goals.target_roles) > 0 else "Software Engineer",
+        preferred_locations=[loc.location for loc in preferred_locs] if preferred_locs else [],
+        current_status=user.readiness_level.value if user.readiness_level else "beginner",
+        field_of_interest="Software Engineering",
+        target_role=career_goals.target_roles[0] if career_goals and career_goals.target_roles and len(career_goals.target_roles) > 0 else "Software Engineer",
         timeline=career_goals.target_timeline if career_goals and career_goals.target_timeline else "6 Months",
-        visionStatement=career_intent.intent_text if career_intent and career_intent.intent_text else "",
+        vision_statement=career_intent.intent_text if career_intent and career_intent.intent_text else "",
         readiness_level=user.readiness_level.value if user.readiness_level else "beginner",
         is_demo=user.is_demo if user.is_demo is not None else False,
         created_at=user.created_at,
@@ -343,7 +334,7 @@ async def get_user_profile(user_id: str, db: Session) -> UserResponse:
                 id=p.id,
                 title=p.title,
                 description=p.description or "",
-                techStack=p.tech_stack or "",
+                tech_stack=p.tech_stack or "",
                 link=p.link,
                 is_confirmed=p.is_confirmed
             ) for p in projects
@@ -363,7 +354,7 @@ async def get_user_profile(user_id: str, db: Session) -> UserResponse:
         ] if experience else [],
         availability=AvailabilityResponse(
             id=availability.id,
-            freeTime=availability.free_time or "",
-            studyDays=availability.study_days or []
+            free_time=availability.free_time or "",
+            study_days=availability.study_days or []
         ) if availability else None
     )
