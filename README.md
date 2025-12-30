@@ -2,9 +2,20 @@
 
 <div align="center">
 
-![CareerAI Banner](./docs/images/banner - Automate, Learn, and Grow**
+![CareerAI Banner](./docs/images/banner.png)
 
-[](LICENSEn](https://img.shields.io/badge/python-3.11+-://img.shields.io/badge/FastAPI-0.104blueem-architecture) -  [Installation](#-quick-start) -  [Agents](#-ai-agents) -  [Demo](#-screenshots)
+# CareerAI – Automate, Learn, and Grow 🚀
+
+![Python](https://img.shields.io/badge/python-3.11+-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104-green)
+![Architecture](https://img.shields.io/badge/architecture-agentic_AI-purple)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
+
+---
+
+[🚀 Quick Start](#-quick-start) •
+[🤖 AI Agents](#-ai-agents) •
+[🖼 Demo](#-screenshots)
 
 </div>
 
