@@ -1564,6 +1564,6 @@ Built with ❤️ by the CareerAI Team
 -R Vivek Reddy 
 -Anirudh 
 
-![Footer](./docs/images/footer-er 30, 2025
+![Footer][CareerAI Banner](Images/Banner.jpeg)
 
 </div>
