@@ -1566,4 +1566,7 @@ Built with ❤️ by the CareerAI Team
 
 ![CareerAI Banner](Images/Banner.jpeg)
 
+
+Notice : WOULD YOU PSUHING ALL FILES BY 5AM AS WARDEN IS MAKING ME CLEAR THE ROOM FOR NEW YEAR CELEBRATIONS .
+
 </div>
