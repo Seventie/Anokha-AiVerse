@@ -1559,6 +1559,11 @@ Special thanks to:
 
 Built with ❤️ by the CareerAI Team
 
+-Shaik Abdus Sattar 
+-AC Sanhitha Reddy 
+-R Vivek Reddy 
+-Anirudh 
+
 ![Footer](./docs/images/footer-er 30, 2025
 
 </div>
