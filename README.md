@@ -293,8 +293,8 @@ Score = Skills Match (40%) + Experience (30%) +
            │  (Coordinates 8 Agents)  │
            └──────────────────────────┘
 ```
-
-![Architecture Diagram](./docs/images/ **Multi-Agent Orchestration (LangGraph + LangChain)**
+https://drive.google.com/uc?export=view&id=15-lU-gK56rQIY0LJGaF96QNNbeCXNkpa
+**Multi-Agent Orchestration (LangGraph + LangChain)**
 
 ```
                   ┌─────────────────────┐
@@ -340,6 +340,8 @@ Score = Skills Match (40%) + Experience (30%) +
 ***
 
 ## 🔄 Complete Workflow
+https://drive.google.com/uc?export=view&id=1_r9Zal0jzfewD3XRq3tII3sKQsEG3Eiv
+
 
 ### **1. User Registration Flow**
 
