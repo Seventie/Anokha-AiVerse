@@ -1,14 +1,28 @@
-# backend/app/routes/auth.py - ENHANCED WITH BACKGROUND GRAPH SYNC
+# backend/app/routes/auth.py - COMPLETE FIXED VERSION
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.config.database import get_db
-from app.models.database import User, Education, Skill, Project, Experience, Availability, CareerGoal, CareerIntent, PreferredLocation, SkillCategory, SkillLevel
-from app.schemas.user import UserRegister, UserLogin, Token, UserResponse, UserRegisterResponse, EducationResponse, SkillResponse, ProjectResponse, ExperienceResponse, AvailabilityResponse
-from app.utils.auth import verify_password, get_password_hash, create_access_token, decode_access_token
+from app.models.database import (
+    User, Education, Skill, Project, Experience, Availability, 
+    CareerGoal, CareerIntent, PreferredLocation, SkillCategory, SkillLevel
+)
+from app.schemas.user import (
+    UserRegister, UserLogin, Token, UserResponse, UserRegisterResponse,
+    EducationResponse, SkillResponse, ProjectResponse, ExperienceResponse, AvailabilityResponse
+)
+from app.utils.auth import (
+    verify_password, 
+    get_password_hash, 
+    create_access_token, 
+    decode_access_token,
+    get_current_user_dict  # ✅ Import the dict version for Google OAuth
+)
 from app.services.vector_db import get_vector_db
 from app.services.graph_db import get_graph_db
 from app.services.user_graph_sync import get_user_graph_sync
+from app.services.google_oauth import google_oauth  # ✅ Import here
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uuid
 import logging
@@ -249,7 +263,7 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user(
+async def get_current_user_endpoint(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ):
@@ -358,3 +372,111 @@ async def get_user_profile(user_id: str, db: Session) -> UserResponse:
             study_days=availability.study_days or []
         ) if availability else None
     )
+
+
+# ========================================
+# 🔗 GOOGLE OAUTH ENDPOINTS
+# ========================================
+
+@router.get("/google/connect")
+async def connect_google(
+    current_user: dict = Depends(get_current_user_dict)  # ✅ Use dict version
+):
+    """Generate Google OAuth URL"""
+    try:
+        # Check if Google OAuth is configured
+        if not google_oauth:
+            logger.error("Google OAuth service not initialized")
+            raise HTTPException(
+                status_code=500,
+                detail="Google OAuth not configured. Please check server settings."
+            )
+        
+        user_id = current_user["user_id"]  # ✅ Dict access
+        logger.info(f"🔗 Generating OAuth URL for user {user_id}")
+        
+        auth_url = google_oauth.get_authorization_url(user_id)
+        
+        return {
+            "success": True,
+            "auth_url": auth_url,
+            "message": "Redirect user to approve Google Calendar + Gmail access"
+        }
+    except ValueError as e:
+        logger.error(f"Configuration error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Failed to generate auth URL: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate authorization URL: {str(e)}"
+        )
+
+
+@router.get("/google/callback")
+async def google_callback(
+    code: str,
+    state: str,  # This is user_id
+    db: Session = Depends(get_db)
+):
+    """Handle Google OAuth callback"""
+    try:
+        user_id = state  # Extract user_id from state
+        logger.info(f"🔄 Processing Google callback for user {user_id}")
+        
+        # Exchange code for token
+        tokens = google_oauth.exchange_code_for_token(code, user_id, db)
+        
+        logger.info(f"✅ Google connected successfully for user {user_id}")
+        
+        # Redirect to frontend dashboard
+        return RedirectResponse(
+            url="http://localhost:3000/dashboard?google_connected=true",
+            status_code=302
+        )
+    except Exception as e:
+        logger.error(f"Google callback failed: {e}", exc_info=True)
+        return RedirectResponse(
+            url=f"http://localhost:3000/dashboard?google_error={str(e)}",
+            status_code=302
+        )
+
+
+@router.get("/google/status")
+async def google_status(
+    current_user: dict = Depends(get_current_user_dict),  # ✅ Use dict version
+    db: Session = Depends(get_db)
+):
+    """Check if user has connected Google"""
+    user_id = current_user["user_id"]  # ✅ Dict access
+    user = db.query(User).filter(User.id == user_id).first()
+    
+    connected = user and user.google_access_token is not None
+    
+    return {
+        "connected": connected,
+        "has_calendar_access": connected,
+        "has_gmail_access": connected
+    }
+
+
+@router.post("/google/disconnect")
+async def disconnect_google(
+    current_user: dict = Depends(get_current_user_dict),  # ✅ Use dict version
+    db: Session = Depends(get_db)
+):
+    """Disconnect Google account"""
+    user_id = current_user["user_id"]  # ✅ Dict access
+    user = db.query(User).filter(User.id == user_id).first()
+    
+    if user:
+        user.google_access_token = None
+        user.google_refresh_token = None
+        user.google_token_expiry = None
+        db.commit()
+        logger.info(f"🔌 Google disconnected for user {user_id}")
+    
+    return {"success": True, "message": "Google account disconnected"}

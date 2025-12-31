@@ -1,4 +1,4 @@
-# backend/app/models/database.py
+# backend/app/models/database.py - COMPLETE FIXED VERSION
 
 from sqlalchemy import Column, String, Integer, Float, Boolean, Text, DateTime, ForeignKey, JSON, Enum, BigInteger
 from sqlalchemy.ext.declarative import declarative_base
@@ -9,6 +9,7 @@ import uuid
 
 Base = declarative_base()
 
+# ==================== ENUMS ====================
 
 class ReadinessLevel(str, enum.Enum):
     BEGINNER = "beginner"
@@ -16,20 +17,17 @@ class ReadinessLevel(str, enum.Enum):
     ADVANCED = "advanced"
     EXPERT = "expert"
 
-
 class SkillCategory(str, enum.Enum):
     TECHNICAL = "technical"
     SOFT = "soft"
     DOMAIN = "domain"
     TOOL = "tool"
 
-
 class SkillLevel(str, enum.Enum):
     BEGINNER = "beginner"
     INTERMEDIATE = "intermediate"
     ADVANCED = "advanced"
     EXPERT = "expert"
-
 
 class LinkType(str, enum.Enum):
     GITHUB = "github"
@@ -38,17 +36,14 @@ class LinkType(str, enum.Enum):
     WEBSITE = "website"
     OTHER = "other"
 
-
 class InterviewType(str, enum.Enum):
     COMPANY_SPECIFIC = "company_specific"
     CUSTOM_TOPIC = "custom_topic"
-
 
 class RoundType(str, enum.Enum):
     TECHNICAL = "technical"
     HR = "hr"
     COMMUNICATION = "communication"
-
 
 class InterviewStatus(str, enum.Enum):
     NOT_STARTED = "not_started"
@@ -57,7 +52,6 @@ class InterviewStatus(str, enum.Enum):
     COMPLETED = "completed"
     ABANDONED = "abandoned"
 
-
 class RoundStatus(str, enum.Enum):
     LOCKED = "locked"
     UNLOCKED = "unlocked"
@@ -65,6 +59,50 @@ class RoundStatus(str, enum.Enum):
     PASSED = "passed"
     FAILED = "failed"
 
+class JobType(str, enum.Enum):
+    FULLTIME = "fulltime"
+    PARTTIME = "parttime"
+    INTERNSHIP = "internship"
+    CONTRACT = "contract"
+
+class OpportunityStatus(str, enum.Enum):
+    RECOMMENDED = "recommended"
+    SAVED = "saved"
+    APPLIED = "applied"
+    REJECTED = "rejected"
+    INTERVIEWING = "interviewing"
+
+class RoadmapPhase(str, enum.Enum):
+    FOUNDATION = "foundation"
+    INTERMEDIATE = "intermediate"
+    ADVANCED = "advanced"
+    SPECIALIZATION = "specialization"
+
+class TaskStatus(str, enum.Enum):
+    NOT_STARTED = "not_started"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    SKIPPED = "skipped"
+
+# ✅ COLD EMAIL ENUMS
+class EmailCampaignStatus(str, enum.Enum):
+    DRAFT = "draft"
+    PENDING_APPROVAL = "pending_approval"
+    APPROVED = "approved"
+    ACTIVE = "active"
+    PAUSED = "paused"
+    COMPLETED = "completed"
+
+class EmailStatus(str, enum.Enum):
+    DRAFT = "draft"
+    PENDING = "pending"
+    APPROVED = "approved"
+    SENT = "sent"
+    DELIVERED = "delivered"
+    OPENED = "opened"
+    REPLIED = "replied"
+    BOUNCED = "bounced"
+    REJECTED = "rejected"
 
 # ==================== USER MODEL ====================
 
@@ -79,6 +117,12 @@ class User(Base):
     location = Column(String)
     readiness_level = Column(Enum(ReadinessLevel), default=ReadinessLevel.BEGINNER)
     is_demo = Column(Boolean, default=False)
+    
+    # Google OAuth
+    google_access_token = Column(String, nullable=True)
+    google_refresh_token = Column(String, nullable=True)
+    google_token_expiry = Column(DateTime, nullable=True)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -93,9 +137,10 @@ class User(Base):
     preferred_locations = relationship("PreferredLocation", back_populates="user", cascade="all, delete-orphan")
     availability = relationship("Availability", back_populates="user", uselist=False, cascade="all, delete-orphan")
     interviews = relationship("Interview", back_populates="user", cascade="all, delete-orphan")
-    resumes = relationship("UserResume", back_populates="user", cascade="all, delete-orphan")  # ✅ ADDED
-
+    resumes = relationship("UserResume", back_populates="user", cascade="all, delete-orphan")
     journal_entries = relationship("JournalEntry", back_populates="user", cascade="all, delete-orphan")
+    cold_email_campaigns = relationship("ColdEmailCampaign", back_populates="user", cascade="all, delete-orphan")  # ✅ ADDED
+
 # ==================== PROFILE MODELS ====================
 
 class Education(Base):
@@ -116,7 +161,6 @@ class Education(Base):
     
     user = relationship("User", back_populates="education")
 
-
 class Skill(Base):
     __tablename__ = "skills"
     
@@ -131,7 +175,6 @@ class Skill(Base):
     
     user = relationship("User", back_populates="skills")
 
-
 class Project(Base):
     __tablename__ = "projects"
     
@@ -145,7 +188,6 @@ class Project(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     user = relationship("User", back_populates="projects")
-
 
 class Experience(Base):
     __tablename__ = "experience"
@@ -164,7 +206,6 @@ class Experience(Base):
     
     user = relationship("User", back_populates="experience")
 
-
 class Link(Base):
     __tablename__ = "links"
     
@@ -175,7 +216,6 @@ class Link(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     user = relationship("User", back_populates="links")
-
 
 class CareerGoal(Base):
     __tablename__ = "career_goals"
@@ -192,7 +232,6 @@ class CareerGoal(Base):
     
     user = relationship("User", back_populates="career_goals")
 
-
 class CareerIntent(Base):
     __tablename__ = "career_intent"
     
@@ -205,7 +244,6 @@ class CareerIntent(Base):
     
     user = relationship("User", back_populates="career_intent")
 
-
 class PreferredLocation(Base):
     __tablename__ = "preferred_locations"
     
@@ -216,7 +254,6 @@ class PreferredLocation(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     user = relationship("User", back_populates="preferred_locations")
-
 
 class Availability(Base):
     __tablename__ = "availability"
@@ -230,7 +267,6 @@ class Availability(Base):
     
     user = relationship("User", back_populates="availability")
 
-
 class Resume(Base):
     __tablename__ = "resumes"
     
@@ -240,7 +276,6 @@ class Resume(Base):
     file_name = Column(String)
     file_type = Column(String)
     uploaded_at = Column(DateTime, default=datetime.utcnow)
-
 
 # ==================== INTERVIEW MODELS ====================
 
@@ -273,7 +308,6 @@ class Interview(Base):
     recording = relationship("InterviewRecording", back_populates="interview", uselist=False, cascade="all, delete-orphan")
     evaluation = relationship("InterviewEvaluation", back_populates="interview", uselist=False, cascade="all, delete-orphan")
 
-
 class InterviewRound(Base):
     __tablename__ = "interview_rounds"
     
@@ -300,7 +334,6 @@ class InterviewRound(Base):
     interview = relationship("Interview", back_populates="rounds")
     conversations = relationship("InterviewConversation", back_populates="round", cascade="all, delete-orphan")
 
-
 class InterviewConversation(Base):
     __tablename__ = "interview_conversations"
     
@@ -323,7 +356,6 @@ class InterviewConversation(Base):
     
     round = relationship("InterviewRound", back_populates="conversations")
 
-
 class InterviewEvaluation(Base):
     __tablename__ = "interview_evaluations"
     
@@ -345,7 +377,6 @@ class InterviewEvaluation(Base):
     
     interview = relationship("Interview", back_populates="evaluation")
 
-
 class InterviewRecording(Base):
     __tablename__ = "interview_recordings"
     
@@ -364,7 +395,6 @@ class InterviewRecording(Base):
     
     interview = relationship("Interview", back_populates="recording")
 
-
 # ==================== RESUME PARSER MODEL ====================
 
 class UserResume(Base):
@@ -373,51 +403,31 @@ class UserResume(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     
-    # File info
     original_filename = Column(String(255))
     file_path = Column(String(500))
     file_size = Column(Integer)
     
-    # Parsed data (stored as JSON)
     parsed_data = Column(JSON)
     
-    # Quick access fields
     full_name = Column(String(100))
     email = Column(String(100))
     phone = Column(String(20))
     
-    # Skills arrays
     technical_skills = Column(JSON)
     soft_skills = Column(JSON)
     
-    # Match data
     last_jd_matched = Column(Text)
     match_score = Column(Float)
     missing_skills = Column(JSON)
     recommendations = Column(JSON)
     
-    # Metadata
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
     user = relationship("User", back_populates="resumes")
 
 # ==================== OPPORTUNITIES MODULE ====================
-
-class JobType(str, enum.Enum):
-    FULLTIME = "fulltime"
-    PARTTIME = "parttime"
-    INTERNSHIP = "internship"
-    CONTRACT = "contract"
-
-class OpportunityStatus(str, enum.Enum):
-    RECOMMENDED = "recommended"
-    SAVED = "saved"
-    APPLIED = "applied"
-    REJECTED = "rejected"
-    INTERVIEWING = "interviewing"
 
 class JobOpportunity(Base):
     __tablename__ = "job_opportunities"
@@ -430,31 +440,30 @@ class JobOpportunity(Base):
     is_remote = Column(Boolean, default=False)
     description = Column(Text)
     requirements = Column(JSON)
-    salary_min = Column(Integer, nullable=True)  # ✅ Allow NULL
-    salary_max = Column(Integer, nullable=True)  # ✅ Allow NULL
-    salary_currency = Column(String(10), default="INR")  # ✅ Changed default to INR
-    experience_level = Column(String(50), nullable=True)  # ✅ Allow NULL
+    salary_min = Column(Integer, nullable=True)
+    salary_max = Column(Integer, nullable=True)
+    salary_currency = Column(String(10), default="INR")
+    experience_level = Column(String(50), nullable=True)
     url = Column(String(500), unique=True)
     source = Column(String(50))
-    posted_date = Column(DateTime, nullable=True)  # ✅ Allow NULL
+    posted_date = Column(DateTime, nullable=True)
     scraped_at = Column(DateTime, default=datetime.utcnow)
     is_active = Column(Boolean, default=True)
 
-    
 class Hackathon(Base):
     __tablename__ = "hackathons"
     
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     title = Column(String(255), nullable=False)
     organizer = Column(String(255))
-    platform = Column(String(50))  # "Devpost", "MLH", "Devfolio", "Unstop"
+    platform = Column(String(50))
     description = Column(Text)
-    themes = Column(JSON)  # ["AI/ML", "Web3", "Healthcare"]
+    themes = Column(JSON)
     prize_pool = Column(String(100))
     start_date = Column(DateTime)
     end_date = Column(DateTime)
     registration_deadline = Column(DateTime)
-    mode = Column(String(20))  # "online", "offline", "hybrid"
+    mode = Column(String(20))
     location = Column(String(255))
     url = Column(String(500), unique=True)
     eligibility = Column(Text)
@@ -467,7 +476,7 @@ class UserJobMatch(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String, ForeignKey('users.id'), nullable=False)
     job_id = Column(String, ForeignKey('job_opportunities.id'), nullable=False)
-    match_score = Column(Float)  # 0-100
+    match_score = Column(Float)
     matching_skills = Column(JSON)
     missing_skills = Column(JSON)
     status = Column(Enum(OpportunityStatus), default=OpportunityStatus.RECOMMENDED)
@@ -494,7 +503,7 @@ class UserHackathonMatch(Base):
     user = relationship("User")
     hackathon = relationship("Hackathon")
 
-# Add this to backend/app/models/database.py (after existing models, before the end of file)
+# ==================== JOURNAL MODULE ====================
 
 class JournalEntry(Base):
     __tablename__ = "journal_entries"
@@ -502,22 +511,146 @@ class JournalEntry(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     
-    # Entry content
     title = Column(String(255))
     content = Column(Text, nullable=False)
-    mood = Column(String(50))  # happy, motivated, frustrated, confused, accomplished
-    tags = Column(JSON)  # ["learning", "project", "interview", "career"]
+    mood = Column(String(50))
+    tags = Column(JSON)
     
-    # AI analysis
     ai_summary = Column(Text)
     key_insights = Column(JSON)
-    sentiment_score = Column(Float)  # -1 to 1
+    sentiment_score = Column(Float)
     topics_detected = Column(JSON)
     
-    # Metadata
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     word_count = Column(Integer)
     
-    # Relationships
     user = relationship("User", back_populates="journal_entries")
+
+# ==================== ROADMAP MODELS ====================
+
+class Roadmap(Base):
+    __tablename__ = "roadmaps"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    
+    target_role = Column(String(255), nullable=False)
+    target_timeline_weeks = Column(Integer, default=12)
+    
+    roadmap_data = Column(JSON)
+    diagram_svg_url = Column(String(1000))
+    diagram_png_url = Column(String(1000))
+    diagram_text = Column(Text)
+    
+    overall_progress_percent = Column(Float, default=0.0)
+    current_phase = Column(Enum(RoadmapPhase), default=RoadmapPhase.FOUNDATION)
+    
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_synced_at = Column(DateTime)
+    
+    user = relationship("User")
+    tasks = relationship("RoadmapTask", back_populates="roadmap", cascade="all, delete-orphan")
+
+class RoadmapTask(Base):
+    __tablename__ = "roadmap_tasks"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    roadmap_id = Column(String, ForeignKey("roadmaps.id"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    
+    phase = Column(Enum(RoadmapPhase), nullable=False)
+    skill_name = Column(String(255), nullable=False)
+    task_title = Column(String(500), nullable=False)
+    task_description = Column(Text)
+    
+    sequence_order = Column(Integer)
+    estimated_hours = Column(Integer)
+    start_date = Column(DateTime)
+    due_date = Column(DateTime)
+    
+    status = Column(Enum(TaskStatus), default=TaskStatus.NOT_STARTED)
+    progress_percent = Column(Float, default=0.0)
+    completed_at = Column(DateTime)
+    
+    google_calendar_event_id = Column(String(255))
+    calendar_synced = Column(Boolean, default=False)
+    
+    resources = Column(JSON)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    roadmap = relationship("Roadmap", back_populates="tasks")
+    user = relationship("User")
+
+# ==================== COLD EMAIL MODELS ====================
+
+class ColdEmailCampaign(Base):
+    __tablename__ = "cold_email_campaigns"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    
+    name = Column(String, nullable=False)
+    target_role = Column(String, nullable=False)
+    target_companies = Column(JSON, default=list)
+    
+    status = Column(Enum(EmailCampaignStatus), default=EmailCampaignStatus.DRAFT)  # ✅ FIXED
+    
+    send_interval_days = Column(Integer, default=3)
+    last_sent_at = Column(DateTime, nullable=True)
+    next_send_at = Column(DateTime, nullable=True)
+    
+    total_recipients = Column(Integer, default=0)
+    emails_sent = Column(Integer, default=0)
+    emails_opened = Column(Integer, default=0)
+    emails_replied = Column(Integer, default=0)
+    
+    require_approval = Column(Boolean, default=True)
+    auto_send = Column(Boolean, default=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User", back_populates="cold_email_campaigns")
+    recipients = relationship("ColdEmailRecipient", back_populates="campaign", cascade="all, delete-orphan")
+
+class ColdEmailRecipient(Base):
+    __tablename__ = "cold_email_recipients"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    campaign_id = Column(String, ForeignKey("cold_email_campaigns.id"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    title = Column(String, nullable=True)
+    company = Column(String, nullable=False)
+    linkedin_url = Column(String, nullable=True)
+    
+    company_info = Column(JSON, default=dict)
+    
+    subject = Column(String, nullable=True)
+    body = Column(Text, nullable=True)
+    generated_at = Column(DateTime, nullable=True)
+    
+    status = Column(Enum(EmailStatus), default=EmailStatus.DRAFT)  # ✅ FIXED
+    sent_at = Column(DateTime, nullable=True)
+    opened_at = Column(DateTime, nullable=True)
+    replied_at = Column(DateTime, nullable=True)
+    
+    approved = Column(Boolean, default=False)
+    approved_at = Column(DateTime, nullable=True)
+    rejection_reason = Column(String, nullable=True)
+    
+    gmail_message_id = Column(String, nullable=True)
+    gmail_thread_id = Column(String, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    campaign = relationship("ColdEmailCampaign", back_populates="recipients")
+    user = relationship("User")

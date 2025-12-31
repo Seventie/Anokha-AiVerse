@@ -1,4 +1,4 @@
-// frontend/src/services/authService.ts
+// frontend/src/services/authService.ts - FIXED
 
 import { apiService } from './apiService';
 
@@ -30,6 +30,46 @@ interface AuthResponse {
 }
 
 class AuthService {
+  // ✅ FIXED: Handle "Not authenticated" errors properly
+  async getSession(): Promise<{ user: User | null; token: string | null }> {
+    try {
+      const token = apiService.getToken();
+      
+      if (!token) {
+        console.log('⚠️ No token found in localStorage');
+        return { user: null, token: null };
+      }
+
+      console.log('🔍 Validating token with backend...');
+      
+      // Try to get current user
+      const response = await this.getCurrentUser();
+      
+      // ✅ FIX: If error (like "Not authenticated"), clear token
+      if (response.error) {
+        console.warn('⚠️ Token invalid or expired:', response.error);
+        this.logout(); // Clear the bad token
+        return { user: null, token: null };
+      }
+      
+      if (response.user) {
+        console.log('✅ Token valid, user loaded:', response.user.email);
+        return { user: response.user, token };
+      }
+
+      // No user and no error = something weird, clear token
+      console.warn('⚠️ Unexpected state, clearing token');
+      this.logout();
+      return { user: null, token: null };
+      
+    } catch (error: any) {
+      console.error('❌ getSession error:', error);
+      // ✅ Clear token on any error
+      this.logout();
+      return { user: null, token: null };
+    }
+  }
+
   async login(email: string, password: string): Promise<AuthResponse> {
     try {
       console.log('🔐 AuthService: Logging in with', email);
@@ -84,11 +124,31 @@ class AuthService {
   }
 
   logout(): void {
+    console.log('🚪 Logging out, clearing tokens...');
     apiService.logout();
+    localStorage.removeItem('user'); // ✅ Also clear stored user
   }
 
   isAuthenticated(): boolean {
     return !!apiService.getToken();
+  }
+
+  // ✅ Helper method to get token
+  getToken(): string | null {
+    return apiService.getToken();
+  }
+
+  // ✅ Helper method to get stored user
+  getStoredUser(): User | null {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        return JSON.parse(userStr);
+      } catch {
+        return null;
+      }
+    }
+    return null;
   }
 }
 

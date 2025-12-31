@@ -18,3 +18,7 @@ interview_audio/
 models/
 *.pt
 *.onnx
+
+google_credentials.json
+
+

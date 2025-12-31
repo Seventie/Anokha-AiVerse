@@ -1,4 +1,4 @@
-// frontend/components/Dashboard/ProfileModule.tsx
+// frontend/components/Dashboard/ProfileModule.tsx - FIXED VERSION
 
 import React, { useState, useEffect } from 'react';
 import { User } from '../../services/authService';
@@ -62,12 +62,18 @@ const ProfileModule: React.FC<ProfileModuleProps> = ({ user }) => {
 
   const startEditing = () => {
     if (!profile) return;
+    
+    // FIX: Safe null/undefined handling
+    const targetRole = profile.career_goals?.target_roles?.[0] || '';
+    const timeline = profile.career_goals?.timeline || '';
+    const visionStatement = profile.career_goals?.vision_statement || '';
+    
     setEditData({
-      full_name: profile.profile.full_name || '',
-      location: profile.profile.location || '',
-      target_role: profile.career_goals.target_roles[0] || '',
-      timeline: profile.career_goals.timeline || '',
-      vision_statement: profile.career_goals.vision_statement || ''
+      full_name: profile.profile?.full_name || '',
+      location: profile.profile?.location || '',
+      target_role: targetRole,
+      timeline: timeline,
+      vision_statement: visionStatement
     });
     setEditing(true);
   };
@@ -137,13 +143,13 @@ const ProfileModule: React.FC<ProfileModuleProps> = ({ user }) => {
             Profile Completeness
           </h3>
           <span className="text-2xl font-bold text-primary">
-            {profile.completeness_score}%
+            {profile.completeness_score || 0}%
           </span>
         </div>
         <div className="w-full bg-white/10 rounded-full h-3">
           <div
             className="bg-primary h-3 rounded-full transition-all"
-            style={{ width: `${profile.completeness_score}%` }}
+            style={{ width: `${profile.completeness_score || 0}%` }}
           />
         </div>
         
@@ -183,12 +189,12 @@ const ProfileModule: React.FC<ProfileModuleProps> = ({ user }) => {
                     className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50"
                   />
                 ) : (
-                  <p className="text-white/80">{profile.profile.full_name}</p>
+                  <p className="text-white/80">{profile.profile?.full_name || 'Not set'}</p>
                 )}
               </div>
               <div>
                 <label className="block text-sm text-white/60 mb-2">Email</label>
-                <p className="text-white/80">{profile.profile.email}</p>
+                <p className="text-white/80">{profile.profile?.email || 'Not set'}</p>
               </div>
               <div>
                 <label className="block text-sm text-white/60 mb-2">Location</label>
@@ -202,7 +208,7 @@ const ProfileModule: React.FC<ProfileModuleProps> = ({ user }) => {
                 ) : (
                   <div className="flex items-center gap-2 text-white/80">
                     <MapPin size={16} />
-                    <span>{profile.profile.location || 'Not set'}</span>
+                    <span>{profile.profile?.location || 'Not set'}</span>
                   </div>
                 )}
               </div>
@@ -226,7 +232,9 @@ const ProfileModule: React.FC<ProfileModuleProps> = ({ user }) => {
                     className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50"
                   />
                 ) : (
-                  <p className="text-white/80">{profile.career_goals.target_roles[0] || 'Not set'}</p>
+                  <p className="text-white/80">
+                    {profile.career_goals?.target_roles?.[0] || 'Not set'}
+                  </p>
                 )}
               </div>
               <div>
@@ -242,7 +250,7 @@ const ProfileModule: React.FC<ProfileModuleProps> = ({ user }) => {
                 ) : (
                   <div className="flex items-center gap-2 text-white/80">
                     <Calendar size={16} />
-                    <span>{profile.career_goals.timeline || 'Not set'}</span>
+                    <span>{profile.career_goals?.timeline || 'Not set'}</span>
                   </div>
                 )}
               </div>
@@ -256,7 +264,7 @@ const ProfileModule: React.FC<ProfileModuleProps> = ({ user }) => {
                     className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50 resize-none"
                   />
                 ) : (
-                  <p className="text-white/80">{profile.career_goals.vision_statement || 'Not set'}</p>
+                  <p className="text-white/80">{profile.career_goals?.vision_statement || 'Not set'}</p>
                 )}
               </div>
             </div>
@@ -307,7 +315,7 @@ const ProfileModule: React.FC<ProfileModuleProps> = ({ user }) => {
             </div>
             {profile.resume ? (
               <div className="p-4 bg-white/5 rounded-xl">
-                <p className="text-white/90 font-medium">{profile.resume.filename}</p>
+                <p className="text-white/90 font-medium">{profile.resume.filename || 'Resume'}</p>
                 <p className="text-xs text-white/40 mt-1">
                   Uploaded {new Date(profile.resume.uploaded_at).toLocaleDateString()}
                 </p>
@@ -335,13 +343,13 @@ const ProfileModule: React.FC<ProfileModuleProps> = ({ user }) => {
                 <Plus size={20} />
               </button>
             </div>
-            {profile.education.length > 0 ? (
+            {profile.education && profile.education.length > 0 ? (
               <div className="space-y-3">
                 {profile.education.map((edu) => (
                   <div key={edu.id} className="p-4 bg-white/5 rounded-xl group">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h4 className="font-medium text-white/90">{edu.degree}</h4>
+                        <h4 className="font-medium text-white/90">{edu.degree || 'Degree'}</h4>
                         <p className="text-sm text-white/70">{edu.institution}</p>
                         {edu.major && <p className="text-xs text-white/50">{edu.major}</p>}
                         <p className="text-xs text-white/40 mt-1">
@@ -377,7 +385,7 @@ const ProfileModule: React.FC<ProfileModuleProps> = ({ user }) => {
                 <Plus size={20} />
               </button>
             </div>
-            {profile.experience.length > 0 ? (
+            {profile.experience && profile.experience.length > 0 ? (
               <div className="space-y-3">
                 {profile.experience.map((exp) => (
                   <div key={exp.id} className="p-4 bg-white/5 rounded-xl group">
@@ -421,7 +429,7 @@ const ProfileModule: React.FC<ProfileModuleProps> = ({ user }) => {
                 <Plus size={20} />
               </button>
             </div>
-            {profile.projects.length > 0 ? (
+            {profile.projects && profile.projects.length > 0 ? (
               <div className="space-y-3">
                 {profile.projects.map((proj) => (
                   <div key={proj.id} className="p-4 bg-white/5 rounded-xl group">
@@ -455,7 +463,7 @@ const ProfileModule: React.FC<ProfileModuleProps> = ({ user }) => {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium flex items-center gap-3">
                 <Award size={20} className="text-primary" />
-                Skills ({profile.skills.length})
+                Skills ({profile.skills?.length || 0})
               </h3>
               <button
                 onClick={() => setShowAddSkill(true)}
@@ -464,14 +472,14 @@ const ProfileModule: React.FC<ProfileModuleProps> = ({ user }) => {
                 <Plus size={20} />
               </button>
             </div>
-            {profile.skills.length > 0 ? (
+            {profile.skills && profile.skills.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {profile.skills.map((skill) => (
                   <div
                     key={skill.id}
                     className="group px-3 py-2 bg-primary/10 text-primary rounded-xl text-sm flex items-center gap-2 hover:bg-primary/20 transition-all"
                   >
-                    <span>{skill.skill}</span>
+                    <span>{skill.skill || 'Skill'}</span>
                     <button
                       onClick={() => handleDeleteItem('skill', skill.id)}
                       className="opacity-0 group-hover:opacity-100"
@@ -498,9 +506,7 @@ const ProfileModule: React.FC<ProfileModuleProps> = ({ user }) => {
   );
 };
 
-// Add these before the export default ProfileModule line
-
-// ==================== ADD EDUCATION MODAL ====================
+// ==================== MODALS ====================
 const AddEducationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [formData, setFormData] = useState({
     institution: '',
@@ -532,14 +538,10 @@ const AddEducationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       <div className="bg-bg-deep border border-white/10 rounded-[2rem] p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-light">Add Education</h3>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-xl transition-all"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-all">
             <X size={24} />
           </button>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm text-white/60 mb-2">Institution *</label>
@@ -552,7 +554,6 @@ const AddEducationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               placeholder="e.g., Stanford University"
             />
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-white/60 mb-2">Degree *</label>
@@ -576,7 +577,6 @@ const AddEducationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               />
             </div>
           </div>
-
           <div>
             <label className="block text-sm text-white/60 mb-2">Location</label>
             <input
@@ -587,7 +587,6 @@ const AddEducationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               placeholder="e.g., Bangalore, India"
             />
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-white/60 mb-2">Start Date</label>
@@ -610,7 +609,6 @@ const AddEducationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               />
             </div>
           </div>
-
           <div>
             <label className="block text-sm text-white/60 mb-2">GPA/Grade</label>
             <input
@@ -621,7 +619,6 @@ const AddEducationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               placeholder="e.g., 3.8/4.0"
             />
           </div>
-
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
@@ -630,11 +627,7 @@ const AddEducationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             >
               {saving ? 'Adding...' : 'Add Education'}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all"
-            >
+            <button type="button" onClick={onClose} className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all">
               Cancel
             </button>
           </div>
@@ -644,7 +637,6 @@ const AddEducationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   );
 };
 
-// ==================== ADD EXPERIENCE MODAL ====================
 const AddExperienceModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [formData, setFormData] = useState({
     role: '',
@@ -679,7 +671,6 @@ const AddExperienceModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             <X size={24} />
           </button>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm text-white/60 mb-2">Role/Position *</label>
@@ -692,7 +683,6 @@ const AddExperienceModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               placeholder="e.g., Software Engineer"
             />
           </div>
-
           <div>
             <label className="block text-sm text-white/60 mb-2">Company *</label>
             <input
@@ -704,7 +694,6 @@ const AddExperienceModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               placeholder="e.g., Google"
             />
           </div>
-
           <div>
             <label className="block text-sm text-white/60 mb-2">Location</label>
             <input
@@ -715,7 +704,6 @@ const AddExperienceModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               placeholder="e.g., Remote / San Francisco, CA"
             />
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-white/60 mb-2">Start Date</label>
@@ -738,7 +726,6 @@ const AddExperienceModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               />
             </div>
           </div>
-
           <div>
             <label className="block text-sm text-white/60 mb-2">Description</label>
             <textarea
@@ -749,7 +736,6 @@ const AddExperienceModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               placeholder="Describe your responsibilities and achievements..."
             />
           </div>
-
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
@@ -758,11 +744,7 @@ const AddExperienceModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             >
               {saving ? 'Adding...' : 'Add Experience'}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all"
-            >
+            <button type="button" onClick={onClose} className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all">
               Cancel
             </button>
           </div>
@@ -772,7 +754,6 @@ const AddExperienceModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   );
 };
 
-// ==================== ADD PROJECT MODAL ====================
 const AddProjectModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -805,7 +786,6 @@ const AddProjectModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             <X size={24} />
           </button>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm text-white/60 mb-2">Project Title *</label>
@@ -818,7 +798,6 @@ const AddProjectModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               placeholder="e.g., E-commerce Platform"
             />
           </div>
-
           <div>
             <label className="block text-sm text-white/60 mb-2">Description</label>
             <textarea
@@ -829,7 +808,6 @@ const AddProjectModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               placeholder="Describe what the project does and your role..."
             />
           </div>
-
           <div>
             <label className="block text-sm text-white/60 mb-2">Tech Stack</label>
             <input
@@ -840,7 +818,6 @@ const AddProjectModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               placeholder="e.g., React, Node.js, MongoDB"
             />
           </div>
-
           <div>
             <label className="block text-sm text-white/60 mb-2">Project Link</label>
             <input
@@ -851,7 +828,6 @@ const AddProjectModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               placeholder="https://github.com/username/project"
             />
           </div>
-
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
@@ -860,11 +836,7 @@ const AddProjectModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             >
               {saving ? 'Adding...' : 'Add Project'}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all"
-            >
+            <button type="button" onClick={onClose} className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all">
               Cancel
             </button>
           </div>
@@ -874,7 +846,6 @@ const AddProjectModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   );
 };
 
-// ==================== ADD SKILL MODAL ====================
 const AddSkillModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [formData, setFormData] = useState({
     skill: '',
@@ -906,7 +877,6 @@ const AddSkillModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             <X size={24} />
           </button>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm text-white/60 mb-2">Skill Name *</label>
@@ -919,7 +889,6 @@ const AddSkillModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               placeholder="e.g., React, Python, Leadership"
             />
           </div>
-
           <div>
             <label className="block text-sm text-white/60 mb-2">Category</label>
             <select
@@ -933,7 +902,6 @@ const AddSkillModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <option value="tool">Tool/Software</option>
             </select>
           </div>
-
           <div>
             <label className="block text-sm text-white/60 mb-2">Proficiency Level</label>
             <select
@@ -947,7 +915,6 @@ const AddSkillModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <option value="expert">Expert</option>
             </select>
           </div>
-
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
@@ -956,11 +923,7 @@ const AddSkillModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             >
               {saving ? 'Adding...' : 'Add Skill'}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all"
-            >
+            <button type="button" onClick={onClose} className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all">
               Cancel
             </button>
           </div>
@@ -970,7 +933,6 @@ const AddSkillModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   );
 };
 
-// ==================== RESUME UPLOAD MODAL ====================
 const ResumeUploadModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -1027,7 +989,6 @@ const ResumeUploadModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             <X size={24} />
           </button>
         </div>
-
         <div
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
@@ -1103,4 +1064,3 @@ const ResumeUploadModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 };
 
 export default ProfileModule;
-
