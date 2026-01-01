@@ -260,7 +260,8 @@ Score = Skills Match (40%) + Experience (30%) +
 
 ## 🏗️ System Architecture
 
-(Images/Architecture.jpeg)
+![Architecture](Images/Architecture.jpeg)
+
 
 ### **High-Level Architecture**
 
