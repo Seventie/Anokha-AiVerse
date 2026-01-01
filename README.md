@@ -1493,52 +1493,6 @@ Anokha-AiVerse/
 
 ***
 
-## 🤝 Contributing
-
-We welcome contributions from the community!
-
-### **How to Contribute**
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** changes (`git commit -m 'Add amazing feature'`)
-4. **Push** to branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
-
-### **Code Standards**
-
-- **Python:** PEP 8, use type hints, docstrings for functions
-- **TypeScript:** Airbnb style guide, functional components, TypeScript strict mode
-- **Commits:** Conventional Commits format (`feat:`, `fix:`, `docs:`, etc.)
-
-### **Testing**
-
-```bash
-# Backend tests
-cd backend
-pytest tests/ -v
-
-# Frontend tests
-cd frontend
-npm test
-```
-
-***
-
-## 📄 License
-
-This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for details.
-
-***
-
-## 📧 Contact & Support
-
-- 💬 **Discord:** [Join our community](https://discord.gg/careerai)
-- 🐦 **Twitter:** [@CareerAI_Dev](https://twitter.com/CareerAI_Dev)
-- 📧 **Email:** support@careerai.dev
-- 🐛 **Issues:** [GitHub Issues](https://github.com/Seventie/Anokha-AiVerse/issues)
-
-***
 
 ## 🙏 Acknowledgments
 
