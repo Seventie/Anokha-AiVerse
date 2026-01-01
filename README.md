@@ -1516,7 +1516,7 @@ Special thanks to:
 
 **⭐ Star this repo if CareerAI helped you land your dream job!**
 
-Built with ❤️ by the CareerAI Team
+Built with ❤️ by the adviceGuide Team
 
 -Shaik Abdus Sattar 
 -AC Sanhitha Reddy 
