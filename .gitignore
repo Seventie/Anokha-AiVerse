@@ -89,3 +89,31 @@ backend/models/piper/
 Thumbs.db
 .vscode/
 .idea/
+
+
+
+
+# Python virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+uploads/
+interview_recordings/
+interview_audio/
+
+models/
+*.pt
+*.onnx
+
+google_credentials.json
+
+
