@@ -1514,7 +1514,7 @@ Special thanks to:
 
 <div align="center">
 
-**⭐ Star this repo if CareerAI helped you land your dream job!**
+**⭐ Star this repo if adviceGuide helped you land your dream job!**
 
 Built with ❤️ by the adviceGuide Team
 
