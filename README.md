@@ -260,6 +260,8 @@ Score = Skills Match (40%) + Experience (30%) +
 
 ## 🏗️ System Architecture
 
+(Images/Architecture.jpeg)
+
 ### **High-Level Architecture**
 
 ```
@@ -747,6 +749,9 @@ Result: AI remembers past patterns and adapts guidance
 - **Long-term Companion** learns user over weeks/months
 
 ***
+
+## FLOWDIAGRAM 
+(Images/FlowDiagram.jpeg)
 
 ## 🗄️ Database Architecture
 
