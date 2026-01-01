@@ -260,7 +260,7 @@ Score = Skills Match (40%) + Experience (30%) +
 
 ## 🏗️ System Architecture
 
-![Architecture](Images/Arch.jpeg)
+![Architecture](Images/Arch.png)
 
 
 ### **High-Level Architecture**
@@ -752,7 +752,7 @@ Result: AI remembers past patterns and adapts guidance
 ***
 
 ## FLOWDIAGRAM 
-![FloDiagram](Images/FlowDiagram.jpeg)
+![FloDiagram](Images/FlowDiagram.png)
 
 ## 🗄️ Database Architecture
 
